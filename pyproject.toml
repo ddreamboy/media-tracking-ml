@@ -1,0 +1,14 @@
+[project]
+name = "media-tracking-ml"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastparquet>=2026.3.0",
+    "ipykernel>=7.2.0",
+    "matplotlib>=3.10.8",
+    "pandas>=3.0.2",
+    "pip>=26.0.1",
+    "seaborn>=0.13.2",
+]
