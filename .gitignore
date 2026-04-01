@@ -9,5 +9,12 @@ wheels/
 # Virtual environments
 .venv
 
+# pixi
+.pixi/
+
+# Jupyter
+.ipynb_checkpoints/
+Untitled*.ipynb
+
 # Research
 data/

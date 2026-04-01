@@ -1,0 +1,43 @@
+[project]
+name = "media-tracking-ml"
+version = "0.1.0"
+description = "Media tracking ML research"
+channels = ["conda-forge", "pytorch"]
+platforms = ["linux-64", "win-64"]
+
+[dependencies]
+python = "3.11.*"
+pandas = "*"
+matplotlib = "*"
+seaborn = "*"
+jupyterlab = "*"
+ipykernel = "*"
+ipywidgets = "*"
+joblib = "*"
+tqdm = "*"
+huggingface-hub = "*"
+fastparquet = "*"
+setuptools = "*"
+# Embeddings & clustering
+sentence-transformers = "*"
+umap-learn = "*"
+hdbscan = "*"
+
+[pypi-dependencies]
+pymorphy3 = "*"
+pymorphy2-dicts-ru = "*"
+razdel = "*"
+# DBCV validity index for HDBSCAN — not on PyPI/conda-forge
+# dbcv = { git = "https://github.com/christopherjenness/DBCV" }
+
+[feature.cuda.dependencies]
+pytorch = { version = "*", channel = "pytorch" }
+pytorch-cuda = { version = "13.*", channel = "pytorch" }
+
+[feature.cpu.dependencies]
+pytorch = { version = "*", channel = "pytorch" }
+cpuonly = { version = "*", channel = "pytorch" }
+
+[environments]
+cuda = { features = ["cuda"], solve-group = "cuda" }
+cpu = { features = ["cpu"], solve-group = "cpu" }
