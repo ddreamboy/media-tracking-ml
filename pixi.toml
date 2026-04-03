@@ -26,6 +26,9 @@ pymorphy3 = "*"
 pymorphy2-dicts-ru = "*"
 razdel = "*"
 huggingface-hub = "*"
+bertopic = "*"
+gensim = "*"
+optuna = "*"
 
 [feature.cuda.dependencies]
 pytorch = { version = "*", channel = "pytorch" }
@@ -38,3 +41,6 @@ cpuonly = { version = "*", channel = "pytorch" }
 [environments]
 cuda = { features = ["base", "cuda"], solve-group = "cuda" }
 cpu = { features = ["base", "cpu"], solve-group = "cpu" }
+
+[feature.base.tasks]
+lab = "jupyter lab --ip=0.0.0.0 --port=8888 --no-browser"

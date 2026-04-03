@@ -8,9 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
-
-# pixi
-.pixi/
+.env
+.pixi
 
 # Jupyter
 .ipynb_checkpoints/
@@ -18,3 +17,6 @@ Untitled*.ipynb
 
 # Research
 data/
+results/bertopic*
+research/results/hyperparams/bertopic_top*
+research/models/bertopic*
