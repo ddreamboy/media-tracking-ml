@@ -7,12 +7,13 @@ platforms = ["linux-64", "win-64"]
 
 [feature.base.dependencies]
 python = "3.11.*"
-pandas = "*"
-matplotlib = "*"
-seaborn = "*"
 jupyterlab = "*"
 ipykernel = "*"
 ipywidgets = "*"
+
+[feature.base.pypi-dependencies]
+matplotlib = "*"
+seaborn = "*"
 joblib = "*"
 tqdm = "*"
 fastparquet = "*"
@@ -20,8 +21,6 @@ setuptools = "*"
 sentence-transformers = "*"
 umap-learn = "*"
 hdbscan = "*"
-
-[feature.base.pypi-dependencies]
 pymorphy3 = "*"
 pymorphy2-dicts-ru = "*"
 razdel = "*"
@@ -29,14 +28,22 @@ huggingface-hub = "*"
 bertopic = "*"
 gensim = "*"
 optuna = "*"
+clearml = "*"
+python-dotenv = "*"
+openai = "*"
+scikit-learn = "*"
+numpy = ">=2.0"
+pandas = ">=2.0"
+scipy = ">=1.14"
+pynndescent = ">=0.5.13"
 
-[feature.cuda.dependencies]
-pytorch = { version = "*", channel = "pytorch" }
-pytorch-cuda = { version = "12.*", channel = "pytorch" }
+[feature.cuda.pypi-dependencies]
+torch = { version = "*", index = "https://download.pytorch.org/whl/cu130" }
+torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu130" }
 
-[feature.cpu.dependencies]
-pytorch = { version = "*", channel = "pytorch" }
-cpuonly = { version = "*", channel = "pytorch" }
+[feature.cpu.pypi-dependencies]
+torch = "*"
+torchvision = "*"
 
 [environments]
 cuda = { features = ["base", "cuda"], solve-group = "cuda" }

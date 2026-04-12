@@ -1,0 +1,33 @@
+{
+  "slice_A": "2023-H1",
+  "slice_B": "2024-H1",
+  "n_docs_A": 36346,
+  "n_docs_B": 50096,
+  "n_topics_A": 238,
+  "n_topics_B": 248,
+  "cosine_threshold": 0.7,
+  "llm_pairs_evaluated": 11,
+  "taxonomy": {
+    "Stable": 98,
+    "Merged": 49,
+    "Split": 24,
+    "Disappeared": 10,
+    "Emerged": 8
+  },
+  "metrics_A": {
+    "slice": "2023-H1",
+    "n_topics": 238,
+    "noise_ratio": 0.5165080063830958,
+    "dbcv": 0.5294088212075887,
+    "coherence_cv": 0.7194870594103077,
+    "topic_diversity": 0.7831932773109244
+  },
+  "metrics_B": {
+    "slice": "2024-H1",
+    "n_topics": 248,
+    "noise_ratio": 0.4682609389971255,
+    "dbcv": 0.5377129407988462,
+    "coherence_cv": 0.7535120549200115,
+    "topic_diversity": 0.7681451612903226
+  }
+}
