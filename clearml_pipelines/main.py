@@ -55,19 +55,16 @@ def cmd_register(args):
     from clearml import Task
     from shared.config import CLEARML_PROJECT_NAME
 
-    # Path to each task script relative to the repo root.
-    # Task.create() records the git repo + this path so PipelineController
-    # can clone the repo and run the script on the agent — without executing anything now.
     tasks = [
-        ("t01_data_fetch",    Task.TaskTypes.data_processing),
-        ("t02_preprocess",    Task.TaskTypes.data_processing),
-        ("t03_embed",         Task.TaskTypes.training),
-        ("t04_train_bertopic",Task.TaskTypes.training),
-        ("t05_topic_evolution",Task.TaskTypes.data_processing),
+        ("t01_data_fetch", Task.TaskTypes.data_processing),
+        ("t02_preprocess", Task.TaskTypes.data_processing),
+        ("t03_embed", Task.TaskTypes.training),
+        ("t04_train_bertopic", Task.TaskTypes.training),
+        ("t05_topic_evolution", Task.TaskTypes.data_processing),
         ("t06_topic_labeling", Task.TaskTypes.data_processing),
         ("t07_validate_model", Task.TaskTypes.data_processing),
-        ("t08_promote_model",  Task.TaskTypes.data_processing),
-        ("t09_collect_metrics",Task.TaskTypes.monitor),
+        ("t08_promote_model", Task.TaskTypes.data_processing),
+        ("t09_collect_metrics", Task.TaskTypes.monitor),
     ]
 
     for task_name, task_type in tasks:
@@ -99,7 +96,9 @@ def main():
     p_train.set_defaults(func=cmd_train)
 
     # validation/promotion pipeline
-    p_val = sub.add_parser("validate", help="Run validation+promotion pipeline (t07-t08)")
+    p_val = sub.add_parser(
+        "validate", help="Run validation+promotion pipeline (t07-t08)"
+    )
     p_val.add_argument("--t04-task-id", dest="t04_task_id", required=True)
     p_val.add_argument("--t05-task-id", dest="t05_task_id", required=True)
     p_val.add_argument("--t06-task-id", dest="t06_task_id", required=True)
@@ -107,11 +106,15 @@ def main():
 
     # monitoring pipeline
     p_mon = sub.add_parser("monitor", help="Run monitoring pipeline (t09)")
-    p_mon.add_argument("--drift-window-days", dest="drift_window_days", type=int, default=None)
+    p_mon.add_argument(
+        "--drift-window-days", dest="drift_window_days", type=int, default=None
+    )
     p_mon.set_defaults(func=cmd_monitor)
 
     # register all tasks in ClearML (no execution)
-    p_reg = sub.add_parser("register", help="Register all tasks in ClearML without running them")
+    p_reg = sub.add_parser(
+        "register", help="Register all tasks in ClearML without running them"
+    )
     p_reg.set_defaults(func=cmd_register)
 
     args = parser.parse_args()

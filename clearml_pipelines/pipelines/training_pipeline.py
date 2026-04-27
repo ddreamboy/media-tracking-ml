@@ -145,7 +145,7 @@ def run_pipeline(
         execution_queue="default",
     )
 
-    pipe.start(queue="default")
+    pipe.start_locally(run_pipeline_steps_locally=False)
     print("Pipeline enqueued. Monitor at ClearML UI.")
 
 
