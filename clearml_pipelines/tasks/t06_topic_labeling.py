@@ -1,4 +1,8 @@
 """Task t06: Topic labeling via ring-based sampling + LLM"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 import json
 
@@ -6,6 +10,7 @@ import numpy as np
 import pandas as pd
 from bertopic import BERTopic
 from clearml import Task
+from shared.clearml_utils import get_artifact, get_artifact_optional, get_production_model
 from shared.config import (
     CLEARML_PROJECT_NAME,
     LLM_API_KEY,
@@ -52,6 +57,7 @@ def main():
 
     params = task.connect(
         {
+            "upstream_task_ids": "",
             "core_docs_count": 5,
             "main_docs_count": 3,
             "periphery_docs_count": 2,
@@ -67,10 +73,10 @@ def main():
     llm_api_key = task.get_parameter("Args/llm_api_key") or LLM_API_KEY
 
     # Load artifacts
-    model_path = task.artifacts["bertopic_model.model"].get_local_copy()
-    emb_topics_path = task.artifacts["topic_embeddings.npy"].get_local_copy()
-    preprocessed_path = task.artifacts["preprocessed.parquet"].get_local_copy()
-    evolution_path = task.artifacts["evolution_report.json"].get_local_copy()
+    model_path = get_artifact(task, "bertopic_model.model")
+    emb_topics_path = get_artifact(task, "topic_embeddings.npy")
+    preprocessed_path = get_artifact(task, "preprocessed.parquet")
+    evolution_path = get_artifact(task, "evolution_report.json")
 
     model = BERTopic.load(model_path)
     df = pd.read_parquet(preprocessed_path)
@@ -88,8 +94,6 @@ def main():
             stable_topic_ids.add(int(rec["new_topic_id"]))
 
     # Load prod labels for inheritance
-    from shared.clearml_utils import get_production_model
-
     prod_model_obj = get_production_model()
     inherited_labels: dict[int, dict] = {}
     if prod_model_obj is not None:
@@ -102,7 +106,7 @@ def main():
 
     # We need doc embeddings for ring sampling
     # Reuse already-computed embeddings if available in pipeline context
-    emb_artifact = task.artifacts.get("embeddings.npy")
+    emb_artifact = get_artifact_optional(task, "embeddings.npy")
     if emb_artifact:
         embeddings_path = emb_artifact.get_local_copy()
         doc_embeddings = np.load(embeddings_path)

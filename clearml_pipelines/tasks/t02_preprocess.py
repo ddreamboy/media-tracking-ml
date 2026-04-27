@@ -1,7 +1,12 @@
 """Task t02: Preprocess texts (clean + lemmatize)"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 import pandas as pd
 from clearml import Task
+from shared.clearml_utils import get_artifact
 from shared.config import CLEARML_PROJECT_NAME
 from shared.preprocessing import preprocess_texts
 
@@ -14,11 +19,11 @@ def main():
     )
     logger = task.get_logger()
 
-    params = task.connect({"n_jobs": 4, "chunk_size": 10000})
+    params = task.connect({"upstream_task_ids": "", "n_jobs": 4, "chunk_size": 10000})
     n_jobs = int(params["n_jobs"])
     chunk_size = int(params["chunk_size"])
 
-    raw_parquet = task.artifacts["raw_data.parquet"].get_local_copy()
+    raw_parquet = get_artifact(task, "raw_data.parquet")
     df = pd.read_parquet(raw_parquet)
     print(f"Loaded {len(df):,} records")
 

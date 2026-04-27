@@ -1,4 +1,8 @@
 """Task t04: Train BERTopic model"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 import json
 import time
@@ -7,7 +11,7 @@ import numpy as np
 import pandas as pd
 from clearml import Task
 from shared.bertopic_utils import build_bertopic, compute_metrics, scale_hparams
-from shared.clearml_utils import get_best_hparams
+from shared.clearml_utils import get_artifact, get_artifact_optional, get_best_hparams
 from shared.config import CLEARML_PROJECT_NAME, DEFAULT_HPARAMS_PATH
 
 
@@ -19,15 +23,15 @@ def main():
     )
     logger = task.get_logger()
 
-    params = task.connect({"heterogeneous_topic_ids": "[]"})
+    params = task.connect({"upstream_task_ids": "", "heterogeneous_topic_ids": "[]"})
     het_ids_raw = params.get("heterogeneous_topic_ids", "[]")
     if isinstance(het_ids_raw, str):
         heterogeneous_topic_ids = json.loads(het_ids_raw)
     else:
         heterogeneous_topic_ids = list(het_ids_raw)
 
-    preprocessed_path = task.artifacts["preprocessed.parquet"].get_local_copy()
-    embeddings_path = task.artifacts["embeddings.npy"].get_local_copy()
+    preprocessed_path = get_artifact(task, "preprocessed.parquet")
+    embeddings_path = get_artifact(task, "embeddings.npy")
 
     df = pd.read_parquet(preprocessed_path)
     embeddings = np.load(embeddings_path)
@@ -111,7 +115,7 @@ def main():
     task.upload_artifact("topic_info.csv", artifact_object=info_path)
 
     # training_meta
-    emb_meta_local = task.artifacts.get("embedding_meta.json")
+    emb_meta_local = get_artifact_optional(task, "embedding_meta.json")
     embedding_model_name = ""
     if emb_meta_local:
         try:

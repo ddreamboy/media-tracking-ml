@@ -1,9 +1,13 @@
 """Task t07: Validate new model vs production"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 import json
 
 from clearml import Task
-from shared.clearml_utils import get_production_model
+from shared.clearml_utils import get_artifact, get_production_model
 from shared.config import CLEARML_PROJECT_NAME, THRESHOLDS_PATH
 
 
@@ -15,6 +19,8 @@ def main():
     )
     logger = task.get_logger()
 
+    task.connect({"upstream_task_ids": ""})
+
     with open(THRESHOLDS_PATH) as f:
         thresholds = json.load(f)["validation"]
 
@@ -24,7 +30,7 @@ def main():
     num_topics_min = thresholds["num_topics_min"]
 
     # Load new model training meta
-    training_meta_path = task.artifacts["training_meta.json"].get_local_copy()
+    training_meta_path = get_artifact(task, "training_meta.json")
     with open(training_meta_path) as f:
         training_meta = json.load(f)
 

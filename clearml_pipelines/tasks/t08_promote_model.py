@@ -1,10 +1,14 @@
 """Task t08: Promote model to production and push to HF Hub"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 import json
 from datetime import datetime, timezone
 
 from clearml import Model, Task
-from shared.clearml_utils import tag_model_as_production
+from shared.clearml_utils import get_artifact, tag_model_as_production
 from shared.config import (
     CLEARML_PROJECT_NAME,
     HF_TOKEN,
@@ -21,8 +25,10 @@ def main():
     )
     logger = task.get_logger()
 
+    task.connect({"upstream_task_ids": ""})
+
     # Load validation report
-    val_report_path = task.artifacts["validation_report.json"].get_local_copy()
+    val_report_path = get_artifact(task, "validation_report.json")
     with open(val_report_path) as f:
         validation_report = json.load(f)
 
@@ -52,11 +58,11 @@ def main():
         return
 
     # Load required artifacts
-    evolution_path = task.artifacts["evolution_report.json"].get_local_copy()
-    topic_map_path = task.artifacts["topic_map_llm.csv"].get_local_copy()
-    model_path = task.artifacts["bertopic_model.model"].get_local_copy()
-    topic_emb_path = task.artifacts["topic_embeddings.npy"].get_local_copy()
-    training_meta_path = task.artifacts["training_meta.json"].get_local_copy()
+    evolution_path = get_artifact(task, "evolution_report.json")
+    topic_map_path = get_artifact(task, "topic_map_llm.csv")
+    model_path = get_artifact(task, "bertopic_model.model")
+    topic_emb_path = get_artifact(task, "topic_embeddings.npy")
+    training_meta_path = get_artifact(task, "training_meta.json")
 
     with open(evolution_path, encoding="utf-8") as f:
         evolution_report = json.load(f)

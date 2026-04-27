@@ -1,4 +1,8 @@
 """Task t05: Topic evolution analysis (Momeni taxonomy)"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 import json
 
@@ -9,7 +13,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from bertopic import BERTopic
 from clearml import Task
-from shared.clearml_utils import get_production_model
+from shared.clearml_utils import get_artifact, get_artifact_optional, get_production_model
 from shared.config import (
     CLEARML_PROJECT_NAME,
     LLM_API_KEY,
@@ -33,6 +37,7 @@ def main():
 
     params = task.connect(
         {
+            "upstream_task_ids": "",
             "cosine_threshold_high": 0.7,
             "cosine_threshold_low": 0.4,
             "jaccard_threshold": 0.3,
@@ -48,11 +53,11 @@ def main():
     llm_api_key = task.get_parameter("Args/llm_api_key") or LLM_API_KEY
 
     # Load new model
-    new_model_path = task.artifacts["bertopic_model.model"].get_local_copy()
+    new_model_path = get_artifact(task, "bertopic_model.model")
     new_model = BERTopic.load(new_model_path)
 
     # Load embedding_meta to check if embedding changed
-    emb_meta_artifact = task.artifacts.get("embedding_meta.json")
+    emb_meta_artifact = get_artifact_optional(task, "embedding_meta.json")
     embedding_changed = False
     if emb_meta_artifact:
         try:

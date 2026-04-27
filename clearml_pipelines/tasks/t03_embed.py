@@ -1,11 +1,15 @@
 """Task t03: Generate sentence embeddings"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 import json
 
 import numpy as np
 import pandas as pd
 from clearml import Task
-from shared.clearml_utils import get_production_embedding_model_name
+from shared.clearml_utils import get_artifact, get_production_embedding_model_name
 from shared.config import (
     CLEARML_PROJECT_NAME,
     EMBEDDING_API_BASE_URL,
@@ -27,6 +31,7 @@ def main():
 
     params = task.connect(
         {
+            "upstream_task_ids": "",
             "embedding_provider": EMBEDDING_PROVIDER,
             "embedding_model_name": EMBEDDING_MODEL_NAME,
             "batch_size": EMBEDDING_BATCH_SIZE,
@@ -41,7 +46,7 @@ def main():
         task.get_parameter("Args/embedding_api_base_url") or EMBEDDING_API_BASE_URL
     )
 
-    preprocessed_path = task.artifacts["preprocessed.parquet"].get_local_copy()
+    preprocessed_path = get_artifact(task, "preprocessed.parquet")
     df = pd.read_parquet(preprocessed_path)
     texts = df["text_clean"].tolist()
     print(

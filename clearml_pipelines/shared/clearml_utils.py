@@ -92,6 +92,40 @@ def get_production_embedding_model_name() -> Optional[str]:
     return None
 
 
+def _get_upstream_tasks(task) -> list:
+    """Parse upstream_task_ids parameter and return Task objects."""
+    ids_str = task.get_parameter("General/upstream_task_ids") or ""
+    result = []
+    for tid in ids_str.split(","):
+        tid = tid.strip()
+        if tid:
+            try:
+                result.append(Task.get_task(task_id=tid))
+            except Exception as e:
+                warnings.warn(f"Could not fetch upstream task {tid}: {e}")
+    return result
+
+
+def get_artifact(task, name: str) -> str:
+    """Return local file path for artifact, searching current task then upstream tasks."""
+    if name in task.artifacts:
+        return task.artifacts[name].get_local_copy()
+    for upstream in _get_upstream_tasks(task):
+        if name in upstream.artifacts:
+            return upstream.artifacts[name].get_local_copy()
+    raise KeyError(f"Artifact '{name}' not found in task {task.id} or upstream tasks")
+
+
+def get_artifact_optional(task, name: str):
+    """Return Artifact object (supports .get() and .get_local_copy()), or None."""
+    if name in task.artifacts:
+        return task.artifacts[name]
+    for upstream in _get_upstream_tasks(task):
+        if name in upstream.artifacts:
+            return upstream.artifacts[name]
+    return None
+
+
 def tag_model_as_production(new_model: Model) -> None:
     existing = Model.query_models(
         project_name=CLEARML_PROJECT_NAME,

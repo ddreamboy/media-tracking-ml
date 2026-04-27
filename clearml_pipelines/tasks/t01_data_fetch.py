@@ -1,4 +1,8 @@
 """Task t01: Get data from HF Hub and ClearML Dataset."""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 import json
 from datetime import datetime, timezone
