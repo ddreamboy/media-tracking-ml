@@ -40,10 +40,8 @@ def get_production_artifact(artifact_name: str):
 def is_training_in_progress() -> bool:
     tasks = Task.get_tasks(
         project_name=CLEARML_PROJECT_NAME,
-        task_filter={
-            "tags": [TAG_TRAINING_IN_PROGRESS],
-            "status": ["in_progress", "queued"],
-        },
+        tags=[TAG_TRAINING_IN_PROGRESS],
+        task_filter={"status": ["in_progress", "queued"]},
     )
     return len(tasks) > 0
 

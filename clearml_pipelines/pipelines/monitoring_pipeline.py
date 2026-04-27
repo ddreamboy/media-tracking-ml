@@ -1,5 +1,10 @@
 """Pipeline 3: Monitoring Pipeline - runs t09 on schedule (every 24h)"""
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from clearml import Task
 from clearml.automation import TriggerScheduler
 from clearml.automation.controller import PipelineDecorator

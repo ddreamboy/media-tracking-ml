@@ -1,5 +1,10 @@
 """Pipeline 2: Validation & Promotion Pipeline - orchestrates t07->t08"""
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from clearml import Task
 from clearml.automation.controller import PipelineDecorator
 from shared.config import CLEARML_PROJECT_NAME
