@@ -18,7 +18,9 @@ from shared.config import (
     execution_queue="default",
     task_type=Task.TaskTypes.data_processing,
 )
-def step_data_fetch(start_date: str, end_date: str, min_text_length: int = 50, sample_size: int = 0) -> tuple:
+def step_data_fetch(
+    start_date: str, end_date: str, min_text_length: int = 50, sample_size: int = 0
+) -> tuple:
     import os
     import subprocess
     import sys
@@ -170,7 +172,9 @@ def training_pipeline(
     heterogeneous_ids: str = "[]",
     sample_size: int = 0,
 ):
-    raw_parquet, meta_json = step_data_fetch(start_date, end_date, sample_size=sample_size)
+    raw_parquet, meta_json = step_data_fetch(
+        start_date, end_date, sample_size=sample_size
+    )
     preprocessed_parquet = step_preprocess(raw_parquet)
     embeddings_npy, embedding_meta = step_embed(
         preprocessed_parquet,
@@ -206,7 +210,9 @@ def run_pipeline(start_date: str = None, end_date: str = None, sample_size: int 
             (datetime.now(timezone.utc) - timedelta(days=180)).date().isoformat()
         )
 
-    print(f"Starting Training Pipeline: {start_date} -> {end_date}, sample_size={sample_size or 'all'}")
+    print(
+        f"Starting Training Pipeline: {start_date} -> {end_date}, sample_size={sample_size or 'all'}"
+    )
     training_pipeline(start_date=start_date, end_date=end_date, sample_size=sample_size)
 
 

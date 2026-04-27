@@ -1,9 +1,17 @@
 """On-demand Optuna HPO for BERTopic hyperparameters.
 
 Usage:
-    python hpo/run_hpo.py --data-path /path/to/preprocessed.parquet \
-        --embeddings-path /path/to/embeddings.npy \
-        --n-trials 30
+    # Автоматически берёт артефакты из последних t02/t03 задач ClearML
+    python hpo/run_hpo.py --n-trials 30 --sample-size 100000
+
+    # Из конкретных ClearML task ID
+    python hpo/run_hpo.py --n-trials 30 --sample-size 100000 \
+        --preprocess-task-id <t02_task_id> --embed-task-id <t03_task_id>
+
+    # Из локальных файлов
+    python hpo/run_hpo.py --n-trials 30 \
+        --data-path /path/to/preprocessed.parquet \
+        --embeddings-path /path/to/embeddings.npy
 """
 
 import argparse
@@ -29,6 +37,33 @@ SEARCH_SPACE = {
 
 N_RANDOM = 10
 N_TPE = 20
+
+
+def load_from_clearml(
+    preprocess_task_id: str = None, embed_task_id: str = None
+) -> tuple[str, str]:
+    """Fetch preprocessed.parquet and embeddings.npy from ClearML artifacts."""
+    if preprocess_task_id:
+        preprocess_task = Task.get_task(task_id=preprocess_task_id)
+    else:
+        preprocess_task = Task.get_task(
+            project_name=CLEARML_PROJECT_NAME,
+            task_name="t02_preprocess",
+        )
+    print(f"Using preprocess task: {preprocess_task.id} ({preprocess_task.name})")
+    data_path = preprocess_task.artifacts["preprocessed.parquet"].get_local_copy()
+
+    if embed_task_id:
+        embed_task = Task.get_task(task_id=embed_task_id)
+    else:
+        embed_task = Task.get_task(
+            project_name=CLEARML_PROJECT_NAME,
+            task_name="t03_embed",
+        )
+    print(f"Using embed task: {embed_task.id} ({embed_task.name})")
+    embeddings_path = embed_task.artifacts["embeddings.npy"].get_local_copy()
+
+    return data_path, embeddings_path
 
 
 def objective(trial, docs: list[str], embeddings: np.ndarray) -> float:
@@ -62,9 +97,32 @@ def objective(trial, docs: list[str], embeddings: np.ndarray) -> float:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-path", required=True)
-    parser.add_argument("--embeddings-path", required=True)
+    # Источник данных: ClearML task ID
+    parser.add_argument(
+        "--preprocess-task-id",
+        default=None,
+        help="ClearML task ID для t02_preprocess (по умолчанию — последний)",
+    )
+    parser.add_argument(
+        "--embed-task-id",
+        default=None,
+        help="ClearML task ID для t03_embed (по умолчанию — последний)",
+    )
+    # Источник данных: локальные файлы (перекрывает ClearML)
+    parser.add_argument(
+        "--data-path", default=None, help="Путь к preprocessed.parquet (локально)"
+    )
+    parser.add_argument(
+        "--embeddings-path", default=None, help="Путь к embeddings.npy (локально)"
+    )
+    # HPO параметры
     parser.add_argument("--n-trials", type=int, default=30)
+    parser.add_argument(
+        "--sample-size",
+        type=int,
+        default=100000,
+        help="Размер выборки для HPO (0 = весь датасет)",
+    )
     parser.add_argument("--study-name", default="bertopic_hpo")
     args = parser.parse_args()
 
@@ -79,17 +137,43 @@ def main():
     task.connect(
         {
             "n_trials": args.n_trials,
+            "sample_size": args.sample_size,
             "n_random": N_RANDOM,
             "n_tpe": N_TPE,
             "search_space": SEARCH_SPACE,
         }
     )
 
-    df = pd.read_parquet(args.data_path)
-    embeddings = np.load(args.embeddings_path)
-    docs = df["text_lemm"].tolist()
+    # Загрузка данных
+    if args.data_path and args.embeddings_path:
+        data_path = args.data_path
+        embeddings_path = args.embeddings_path
+        print("Loading data from local files")
+    else:
+        data_path, embeddings_path = load_from_clearml(
+            preprocess_task_id=args.preprocess_task_id,
+            embed_task_id=args.embed_task_id,
+        )
 
-    print(f"HPO: {len(docs):,} docs, {args.n_trials} trials")
+    df = pd.read_parquet(data_path)
+    embeddings = np.load(embeddings_path)
+    assert len(df) == len(embeddings), "Mismatch between df and embeddings length"
+
+    # Сэмплирование для ускорения HPO
+    sample_size = int(task.get_parameters().get("Args/sample_size", args.sample_size))
+    total = len(df)
+    if sample_size > 0 and sample_size < total:
+        rng = np.random.default_rng(RANDOM_STATE)
+        idx = rng.choice(total, size=sample_size, replace=False)
+        idx.sort()
+        df = df.iloc[idx].reset_index(drop=True)
+        embeddings = embeddings[idx]
+        print(f"HPO sample: {sample_size:,} / {total:,} docs")
+    else:
+        print(f"HPO: using full dataset {total:,} docs")
+
+    docs = df["text_lemm"].tolist()
+    print(f"Running {args.n_trials} trials")
 
     sampler = optuna.samplers.TPESampler(
         n_startup_trials=N_RANDOM,
@@ -123,13 +207,13 @@ def main():
         logger.report_scalar("best_hparams", k, value=float(v), iteration=0)
     logger.report_scalar("hpo", "best_objective", value=best_value, iteration=0)
     logger.report_scalar("hpo", "n_trials", value=len(study.trials), iteration=0)
+    logger.report_scalar("hpo", "sample_size", value=len(docs), iteration=0)
 
     hparams_path = "/tmp/best_hparams.json"
     with open(hparams_path, "w") as f:
         json.dump(best_hparams, f, indent=2)
     task.upload_artifact("best_hparams.json", artifact_object=hparams_path)
 
-    # Save trials CSV
     trials_df = study.trials_dataframe()
     trials_path = "/tmp/hpo_trials.csv"
     trials_df.to_csv(trials_path, index=False)
