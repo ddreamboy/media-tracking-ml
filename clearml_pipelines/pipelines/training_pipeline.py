@@ -18,6 +18,33 @@ from shared.config import (
 )
 
 
+def _run_task(script_name: str, extra_env: dict = None):
+    """Run a task script from clearml_pipelines/tasks/, setting PYTHONPATH correctly."""
+    import os
+    import subprocess
+    import sys
+
+    # Agent runs steps from repo root (working_dir="."), so clearml_pipelines is a subdir
+    repo_root = os.path.abspath(".")
+    pipelines_dir = os.path.join(repo_root, "clearml_pipelines")
+    task_script = os.path.join(pipelines_dir, "tasks", script_name)
+
+    env = {**os.environ, "PYTHONPATH": pipelines_dir}
+    if extra_env:
+        env.update(extra_env)
+
+    result = subprocess.run(
+        [sys.executable, task_script],
+        capture_output=True,
+        text=True,
+        cwd=pipelines_dir,
+        env=env,
+    )
+    print(result.stdout)
+    if result.returncode != 0:
+        raise RuntimeError(f"{script_name} failed:\n{result.stderr}")
+
+
 @PipelineDecorator.component(
     return_values=["raw_parquet", "meta_json"],
     execution_queue="default",
@@ -26,20 +53,7 @@ from shared.config import (
 def step_data_fetch(
     start_date: str, end_date: str, min_text_length: int = 50, sample_size: int = 0
 ) -> tuple:
-    import os
-    import subprocess
-    import sys
-
-    env = {**os.environ, "T01_SAMPLE_SIZE": str(sample_size)}
-    result = subprocess.run(
-        [sys.executable, "tasks/t01_data_fetch.py"],
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-    print(result.stdout)
-    if result.returncode != 0:
-        raise RuntimeError(f"t01_data_fetch failed:\n{result.stderr}")
+    _run_task("t01_data_fetch.py", extra_env={"T01_SAMPLE_SIZE": str(sample_size)})
     return "/tmp/raw_data.parquet", "/tmp/dataset_meta.json"
 
 
@@ -49,17 +63,7 @@ def step_data_fetch(
     task_type=Task.TaskTypes.data_processing,
 )
 def step_preprocess(raw_parquet: str) -> str:
-    import subprocess
-    import sys
-
-    result = subprocess.run(
-        [sys.executable, "tasks/t02_preprocess.py"],
-        capture_output=True,
-        text=True,
-    )
-    print(result.stdout)
-    if result.returncode != 0:
-        raise RuntimeError(f"t02_preprocess failed:\n{result.stderr}")
+    _run_task("t02_preprocess.py")
     return "/tmp/preprocessed.parquet"
 
 
@@ -71,17 +75,7 @@ def step_preprocess(raw_parquet: str) -> str:
 def step_embed(
     preprocessed_parquet: str, provider: str, model_name: str, batch_size: int
 ) -> tuple:
-    import subprocess
-    import sys
-
-    result = subprocess.run(
-        [sys.executable, "tasks/t03_embed.py"],
-        capture_output=True,
-        text=True,
-    )
-    print(result.stdout)
-    if result.returncode != 0:
-        raise RuntimeError(f"t03_embed failed:\n{result.stderr}")
+    _run_task("t03_embed.py")
     return "/tmp/embeddings.npy", "/tmp/embedding_meta.json"
 
 
@@ -98,17 +92,7 @@ def step_embed(
 def step_train(
     preprocessed_parquet: str, embeddings_npy: str, heterogeneous_ids: str = "[]"
 ) -> tuple:
-    import subprocess
-    import sys
-
-    result = subprocess.run(
-        [sys.executable, "tasks/t04_train_bertopic.py"],
-        capture_output=True,
-        text=True,
-    )
-    print(result.stdout)
-    if result.returncode != 0:
-        raise RuntimeError(f"t04_train_bertopic failed:\n{result.stderr}")
+    _run_task("t04_train_bertopic.py")
     return (
         "/tmp/bertopic_model",
         "/tmp/topic_embeddings.npy",
@@ -125,17 +109,7 @@ def step_train(
 def step_evolution(
     model_path: str, topic_emb_path: str, embedding_meta_path: str
 ) -> str:
-    import subprocess
-    import sys
-
-    result = subprocess.run(
-        [sys.executable, "tasks/t05_topic_evolution.py"],
-        capture_output=True,
-        text=True,
-    )
-    print(result.stdout)
-    if result.returncode != 0:
-        raise RuntimeError(f"t05_topic_evolution failed:\n{result.stderr}")
+    _run_task("t05_topic_evolution.py")
     return "/tmp/evolution_report.json"
 
 
@@ -151,17 +125,7 @@ def step_label(
     evolution_report_path: str,
     embeddings_npy: str,
 ) -> str:
-    import subprocess
-    import sys
-
-    result = subprocess.run(
-        [sys.executable, "tasks/t06_topic_labeling.py"],
-        capture_output=True,
-        text=True,
-    )
-    print(result.stdout)
-    if result.returncode != 0:
-        raise RuntimeError(f"t06_topic_labeling failed:\n{result.stderr}")
+    _run_task("t06_topic_labeling.py")
     return "/tmp/topic_map_llm.csv"
 
 

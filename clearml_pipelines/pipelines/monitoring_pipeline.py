@@ -17,13 +17,21 @@ from shared.config import CLEARML_PROJECT_NAME, DRIFT_WINDOW_DAYS
     task_type=Task.TaskTypes.monitor,
 )
 def step_collect_metrics(drift_window_days: int) -> str:
+    import os
     import subprocess
     import sys
 
+    repo_root = os.path.abspath(".")
+    pipelines_dir = os.path.join(repo_root, "clearml_pipelines")
+    task_script = os.path.join(pipelines_dir, "tasks", "t09_collect_metrics.py")
+    env = {**os.environ, "PYTHONPATH": pipelines_dir}
+
     result = subprocess.run(
-        [sys.executable, "tasks/t09_collect_metrics.py"],
+        [sys.executable, task_script],
         capture_output=True,
         text=True,
+        cwd=pipelines_dir,
+        env=env,
     )
     print(result.stdout)
     if result.returncode != 0:

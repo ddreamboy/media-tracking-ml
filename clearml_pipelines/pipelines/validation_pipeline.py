@@ -10,23 +10,35 @@ from clearml.automation.controller import PipelineDecorator
 from shared.config import CLEARML_PROJECT_NAME
 
 
+def _run_task(script_name: str):
+    import os
+    import subprocess
+    import sys
+
+    repo_root = os.path.abspath(".")
+    pipelines_dir = os.path.join(repo_root, "clearml_pipelines")
+    task_script = os.path.join(pipelines_dir, "tasks", script_name)
+    env = {**os.environ, "PYTHONPATH": pipelines_dir}
+
+    result = subprocess.run(
+        [sys.executable, task_script],
+        capture_output=True,
+        text=True,
+        cwd=pipelines_dir,
+        env=env,
+    )
+    print(result.stdout)
+    if result.returncode != 0:
+        raise RuntimeError(f"{script_name} failed:\n{result.stderr}")
+
+
 @PipelineDecorator.component(
     return_values=["validation_report_path"],
     execution_queue="default",
     task_type=Task.TaskTypes.data_processing,
 )
 def step_validate(training_meta_path: str) -> str:
-    import subprocess
-    import sys
-
-    result = subprocess.run(
-        [sys.executable, "tasks/t07_validate_model.py"],
-        capture_output=True,
-        text=True,
-    )
-    print(result.stdout)
-    if result.returncode != 0:
-        raise RuntimeError(f"t07_validate_model failed:\n{result.stderr}")
+    _run_task("t07_validate_model.py")
     return "/tmp/validation_report.json"
 
 
@@ -43,17 +55,7 @@ def step_promote(
     topic_emb_path: str,
     training_meta_path: str,
 ) -> bool:
-    import subprocess
-    import sys
-
-    result = subprocess.run(
-        [sys.executable, "tasks/t08_promote_model.py"],
-        capture_output=True,
-        text=True,
-    )
-    print(result.stdout)
-    if result.returncode != 0:
-        raise RuntimeError(f"t08_promote_model failed:\n{result.stderr}")
+    _run_task("t08_promote_model.py")
     return True
 
 
