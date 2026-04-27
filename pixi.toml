@@ -49,5 +49,8 @@ torchvision = "*"
 cuda = { features = ["base", "cuda"], solve-group = "cuda" }
 cpu = { features = ["base", "cpu"], solve-group = "cpu" }
 
+[dependencies]
+ruff = ">=0.15.11,<0.16"
+
 [feature.base.tasks]
 lab = "jupyter lab --ip=0.0.0.0 --port=8888 --no-browser"

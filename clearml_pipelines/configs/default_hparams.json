@@ -1,0 +1,9 @@
+{
+  "n_neighbors": 66,
+  "n_components": 12,
+  "min_cluster_size": 53,
+  "min_samples": 146,
+  "umap_metric": "cosine",
+  "hdbscan_metric": "euclidean",
+  "top_n_words": 10
+}

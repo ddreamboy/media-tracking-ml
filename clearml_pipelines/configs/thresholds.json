@@ -1,0 +1,28 @@
+{
+  "validation": {
+    "dbcv_min_relative": 0.95,
+    "cv_coherence_absolute_min": 0.70,
+    "noise_ratio_max": 0.65,
+    "num_topics_min": 20
+  },
+  "topic_evolution": {
+    "cosine_threshold_high": 0.7,
+    "cosine_threshold_low": 0.4,
+    "cosine_weight": 0.7,
+    "jaccard_weight": 0.3,
+    "jaccard_top_n_words": 10
+  },
+  "drift_detection": {
+    "avg_probability_min": 0.50,
+    "low_confidence_ratio_max": 0.30,
+    "noise_ratio_inference_max": 0.35,
+    "drift_window_days": 3
+  },
+  "ring_sampling": {
+    "core_quantile": 0.25,
+    "main_quantile": 0.60,
+    "core_docs": 5,
+    "main_docs": 3,
+    "periphery_docs": 2
+  }
+}
