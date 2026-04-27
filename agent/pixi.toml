@@ -1,0 +1,16 @@
+[workspace]
+name = "clearml-agent"
+version = "0.1.0"
+channels = ["conda-forge"]
+platforms = ["linux-64", "win-64"]
+
+[dependencies]
+python = "3.11.*"
+
+[pypi-dependencies]
+clearml-agent = "*"
+setuptools = "<=71.0"
+
+[tasks]
+cpu = "clearml-agent daemon --queue default --detached"
+gpu = "clearml-agent daemon --queue gpu --detached"
