@@ -18,14 +18,17 @@ from shared.config import (
     execution_queue="default",
     task_type=Task.TaskTypes.data_processing,
 )
-def step_data_fetch(start_date: str, end_date: str, min_text_length: int = 50) -> tuple:
+def step_data_fetch(start_date: str, end_date: str, min_text_length: int = 50, sample_size: int = 0) -> tuple:
+    import os
     import subprocess
     import sys
 
+    env = {**os.environ, "T01_SAMPLE_SIZE": str(sample_size)}
     result = subprocess.run(
         [sys.executable, "tasks/t01_data_fetch.py"],
         capture_output=True,
         text=True,
+        env=env,
     )
     print(result.stdout)
     if result.returncode != 0:
@@ -165,8 +168,9 @@ def training_pipeline(
     start_date: str,
     end_date: str,
     heterogeneous_ids: str = "[]",
+    sample_size: int = 0,
 ):
-    raw_parquet, meta_json = step_data_fetch(start_date, end_date)
+    raw_parquet, meta_json = step_data_fetch(start_date, end_date, sample_size=sample_size)
     preprocessed_parquet = step_preprocess(raw_parquet)
     embeddings_npy, embedding_meta = step_embed(
         preprocessed_parquet,
@@ -188,7 +192,7 @@ def training_pipeline(
     return topic_map_path
 
 
-def run_pipeline(start_date: str = None, end_date: str = None):
+def run_pipeline(start_date: str = None, end_date: str = None, sample_size: int = 0):
     if is_training_in_progress():
         print("Training already in progress - aborting to prevent parallel runs")
         return
@@ -196,16 +200,14 @@ def run_pipeline(start_date: str = None, end_date: str = None):
     if end_date is None:
         end_date = datetime.now(timezone.utc).date().isoformat()
     if start_date is None:
-        # Default: last 6 months
         from datetime import timedelta
 
         start_date = (
             (datetime.now(timezone.utc) - timedelta(days=180)).date().isoformat()
         )
 
-    print(f"Starting Training Pipeline: {start_date} -> {end_date}")
-    PipelineDecorator.run_locally()
-    training_pipeline(start_date=start_date, end_date=end_date)
+    print(f"Starting Training Pipeline: {start_date} -> {end_date}, sample_size={sample_size or 'all'}")
+    training_pipeline(start_date=start_date, end_date=end_date, sample_size=sample_size)
 
 
 if __name__ == "__main__":
@@ -214,6 +216,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--start-date", default=None)
     parser.add_argument("--end-date", default=None)
+    parser.add_argument("--sample-size", type=int, default=1000, help="0 = all records")
     args = parser.parse_args()
 
-    run_pipeline(args.start_date, args.end_date)
+    run_pipeline(args.start_date, args.end_date, args.sample_size)

@@ -85,7 +85,6 @@ def run_pipeline(
     topic_emb_path: str,
 ):
     print("Starting Validation & Promotion Pipeline")
-    PipelineDecorator.run_locally()
     validation_pipeline(
         training_meta_path=training_meta_path,
         topic_map_path=topic_map_path,

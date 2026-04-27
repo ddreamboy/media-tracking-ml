@@ -73,6 +73,7 @@ def main():
         task_name="HPO_BERTopic",
         task_type=Task.TaskTypes.optimizer,
     )
+    task.execute_remote(queue_name="gpu")
     logger = task.get_logger()
 
     task.connect(

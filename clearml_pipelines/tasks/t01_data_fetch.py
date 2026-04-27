@@ -73,6 +73,11 @@ def main():
     )
     logger = task.get_logger()
 
+    import os
+    _default_sample = int(os.environ.get("T01_SAMPLE_SIZE", "0"))
+    params = task.connect({"sample_size": _default_sample})
+    sample_size = int(params["sample_size"])
+
     dataset, parquet_path, dataset_created = _get_or_create_clearml_dataset()
 
     df = pd.read_parquet(parquet_path)
@@ -90,6 +95,11 @@ def main():
     num_records = len(df)
     if num_records == 0:
         raise RuntimeError(f"No records found for {TARGET_YEAR} in dataset")
+
+    if sample_size > 0 and sample_size < num_records:
+        df = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
+        print(f"Sampled {sample_size:,} records from {num_records:,}")
+        num_records = len(df)
 
     start_date = datetime(TARGET_YEAR, 1, 1, tzinfo=timezone.utc).date().isoformat()
     end_date = datetime(TARGET_YEAR, 12, 31, tzinfo=timezone.utc).date().isoformat()

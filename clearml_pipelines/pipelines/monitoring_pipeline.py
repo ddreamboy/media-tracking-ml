@@ -53,7 +53,6 @@ def schedule_monitoring(cron_expression: str = "0 3 * * *"):
 
 def run_pipeline_once():
     print("Starting Monitoring Pipeline")
-    PipelineDecorator.run_locally()
     monitoring_pipeline(drift_window_days=DRIFT_WINDOW_DAYS)
 
 
