@@ -89,6 +89,13 @@ def main():
     dataset, parquet_path, dataset_created = _get_or_create_clearml_dataset()
 
     df = pd.read_parquet(parquet_path)
+
+    df = df.rename(columns={
+        "id_post": "post_id",
+        "channel_name": "channel",
+        "post_date": "created_at",
+    })
+
     required_cols = {"post_id", "channel", "text", "created_at"}
     missing_cols = required_cols - set(df.columns)
     if missing_cols:
