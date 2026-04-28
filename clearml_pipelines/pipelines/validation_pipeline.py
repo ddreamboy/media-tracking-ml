@@ -1,4 +1,4 @@
-"""Validation & Promotion Pipeline: t07 → t08 (standalone, accepts training task IDs)"""
+"""Validation & Promotion Pipeline: t07 -> t08 (standalone, accepts training task IDs)"""
 
 import sys
 from pathlib import Path
@@ -6,7 +6,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from clearml.automation import PipelineController
-
 from shared.config import CLEARML_PROJECT_NAME
 
 

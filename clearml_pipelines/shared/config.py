@@ -24,7 +24,7 @@ LLM_MODEL = os.getenv("LLM_MODEL", "google/gemini-2.5-flash-lite")
 # --- Embedder ---
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "local_hf")
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "deepvk/USER-bge-m3")
-EMBEDDING_BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "512"))
+EMBEDDING_BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "64"))
 EMBEDDING_API_KEY = os.getenv("EMBEDDING_API_KEY", "")
 EMBEDDING_API_BASE_URL = os.getenv("EMBEDDING_API_BASE_URL", "")
 

@@ -1,4 +1,4 @@
-"""Training + Validation + Promotion Pipeline: t01 → t02 → t03 → t04 → t05 → t06 → t07 → t08"""
+"""Training + Validation + Promotion Pipeline: t01 -> t02 -> t03 -> t04 -> t05 -> t06 -> t07 -> t08"""
 
 import sys
 from pathlib import Path
@@ -8,7 +8,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from datetime import datetime, timezone
 
 from clearml.automation import PipelineController
-
 from shared.clearml_utils import is_training_in_progress
 from shared.config import (
     CLEARML_PROJECT_NAME,
@@ -18,13 +17,13 @@ from shared.config import (
 )
 
 # Artifact dependency map:
-# t01 → t02(raw_data.parquet)
-# t02 → t03(preprocessed.parquet)
-# t02,t03 → t04(preprocessed.parquet, embeddings.npy, embedding_meta.json)
-# t04,t03 → t05(bertopic_model.model, embedding_meta.json)
-# t04,t02,t05,t03 → t06(bertopic_model.model, topic_embeddings.npy, preprocessed.parquet, evolution_report.json, embeddings.npy)
-# t04 → t07(training_meta.json)
-# t07,t06,t05,t04 → t08(validation_report.json, topic_map_llm.csv, evolution_report.json, bertopic_model.model, ...)
+# t01 -> t02(raw_data.parquet)
+# t02 -> t03(preprocessed.parquet)
+# t02,t03 -> t04(preprocessed.parquet, embeddings.npy, embedding_meta.json)
+# t04,t03 -> t05(bertopic_model.model, embedding_meta.json)
+# t04,t02,t05,t03 -> t06(bertopic_model.model, topic_embeddings.npy, preprocessed.parquet, evolution_report.json, embeddings.npy)
+# t04 -> t07(training_meta.json)
+# t07,t06,t05,t04 -> t08(validation_report.json, topic_map_llm.csv, evolution_report.json, bertopic_model.model, ...)
 
 
 def run_pipeline(
@@ -46,7 +45,7 @@ def run_pipeline(
         )
 
     print(
-        f"Starting Training Pipeline: {start_date} → {end_date}, "
+        f"Starting Training Pipeline: {start_date} -> {end_date}, "
         f"sample_size={sample_size or 'all'}"
     )
 
