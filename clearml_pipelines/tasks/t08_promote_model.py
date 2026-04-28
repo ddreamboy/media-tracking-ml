@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import os
+import tempfile
 
 import json
 from datetime import datetime, timezone
@@ -136,7 +138,7 @@ def main():
 
     import json as _json
 
-    het_path = "/tmp/heterogeneous_topic_ids.json"
+    het_path = os.path.join(tempfile.gettempdir(), "heterogeneous_topic_ids.json")
     with open(het_path, "w") as f:
         _json.dump(het_ids, f)
     task.upload_artifact("heterogeneous_topic_ids.json", artifact_object=het_path)

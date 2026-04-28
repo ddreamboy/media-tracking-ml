@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import os
+import tempfile
 
 import json
 import time
@@ -97,20 +99,20 @@ def main():
     )
 
     # Save model
-    model_path = "/tmp/bertopic_model"
+    model_path = os.path.join(tempfile.gettempdir(), "bertopic_model")
     model.save(model_path)
     task.upload_artifact("bertopic_model.model", artifact_object=model_path)
 
     # topic_embeddings
     topic_ids = sorted([t for t in model.get_topics().keys() if t != -1])
     emb_topics = np.array([model.topic_embeddings_[t + 1] for t in topic_ids])
-    emb_path = "/tmp/topic_embeddings.npy"
+    emb_path = os.path.join(tempfile.gettempdir(), "topic_embeddings.npy")
     np.save(emb_path, emb_topics)
     task.upload_artifact("topic_embeddings.npy", artifact_object=emb_path)
 
     # topic_info
     topic_info = model.get_topic_info()
-    info_path = "/tmp/topic_info.csv"
+    info_path = os.path.join(tempfile.gettempdir(), "topic_info.csv")
     topic_info.to_csv(info_path, index=False)
     task.upload_artifact("topic_info.csv", artifact_object=info_path)
 
@@ -135,7 +137,7 @@ def main():
         "metrics": metrics,
         "training_duration_seconds": training_duration,
     }
-    meta_path = "/tmp/training_meta.json"
+    meta_path = os.path.join(tempfile.gettempdir(), "training_meta.json")
     with open(meta_path, "w") as f:
         json.dump(training_meta, f, indent=2)
     task.upload_artifact("training_meta.json", artifact_object=meta_path)

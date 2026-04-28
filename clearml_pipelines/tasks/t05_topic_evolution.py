@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import os
+import tempfile
 
 import json
 
@@ -114,7 +116,7 @@ def main():
                 f"Cosine Similarity: new vs production (first {show_n} topics)"
             )
             plt.tight_layout()
-            heatmap_path = "/tmp/cosine_heatmap.png"
+            heatmap_path = os.path.join(tempfile.gettempdir(), "cosine_heatmap.png")
             fig.savefig(heatmap_path)
             plt.close(fig)
             logger.report_image(
@@ -148,7 +150,7 @@ def main():
         iteration=0,
     )
 
-    report_path = "/tmp/evolution_report.json"
+    report_path = os.path.join(tempfile.gettempdir(), "evolution_report.json")
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump(evolution_report, f, indent=2, ensure_ascii=False)
     task.upload_artifact("evolution_report.json", artifact_object=report_path)

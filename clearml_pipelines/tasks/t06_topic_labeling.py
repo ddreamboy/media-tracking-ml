@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import os
+import tempfile
 
 import json
 
@@ -229,7 +231,7 @@ def main():
         "count",
     ]
     out_cols = [c for c in out_cols if c in df_labels.columns]
-    out_path = "/tmp/topic_map_llm.csv"
+    out_path = os.path.join(tempfile.gettempdir(), "topic_map_llm.csv")
     df_labels[out_cols].to_csv(out_path, index=False, encoding="utf-8")
     task.upload_artifact("topic_map_llm.csv", artifact_object=out_path)
 

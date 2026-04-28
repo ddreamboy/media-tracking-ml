@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import tempfile
 
 import json
 from datetime import datetime, timezone
@@ -141,13 +142,13 @@ def main():
     ax.set_ylabel("Количество постов")
     plt.xticks(rotation=45)
     plt.tight_layout()
-    dist_path = "/tmp/monthly_distribution.png"
+    dist_path = os.path.join(tempfile.gettempdir(), "monthly_distribution.png")
     fig.savefig(dist_path)
     plt.close(fig)
     logger.report_image("distribution", "monthly", iteration=0, local_path=dist_path)
 
     # Save artifacts
-    parquet_path = "/tmp/raw_data.parquet"
+    parquet_path = os.path.join(tempfile.gettempdir(), "raw_data.parquet")
     df.to_parquet(parquet_path, index=False)
     task.upload_artifact("raw_data.parquet", artifact_object=parquet_path)
 
@@ -164,7 +165,7 @@ def main():
         "clearml_dataset_id": dataset.id,
         "source": "existing_clearml_dataset" if not dataset_created else "hf_hub",
     }
-    meta_path = "/tmp/dataset_meta.json"
+    meta_path = os.path.join(tempfile.gettempdir(), "dataset_meta.json")
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2, ensure_ascii=False)
     task.upload_artifact("dataset_meta.json", artifact_object=meta_path)

@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import os
+import tempfile
 
 import json
 
@@ -87,11 +89,11 @@ def main():
         iteration=0,
     )
 
-    emb_path = "/tmp/embeddings.npy"
+    emb_path = os.path.join(tempfile.gettempdir(), "embeddings.npy")
     np.save(emb_path, embeddings)
     task.upload_artifact("embeddings.npy", artifact_object=emb_path)
 
-    meta_path = "/tmp/embedding_meta.json"
+    meta_path = os.path.join(tempfile.gettempdir(), "embedding_meta.json")
     with open(meta_path, "w") as f:
         json.dump(meta, f, indent=2)
     task.upload_artifact("embedding_meta.json", artifact_object=meta_path)

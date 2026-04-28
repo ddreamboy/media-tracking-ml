@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import os
+import tempfile
 
 import pandas as pd
 from clearml import Task
@@ -59,7 +61,7 @@ def main():
 
     out_cols = ["post_id", "channel", "created_at", "text_clean", "text_lemm"]
     out_cols = [c for c in out_cols if c in df.columns]
-    out_path = "/tmp/preprocessed.parquet"
+    out_path = os.path.join(tempfile.gettempdir(), "preprocessed.parquet")
     df[out_cols].to_parquet(out_path, index=False)
     task.upload_artifact("preprocessed.parquet", artifact_object=out_path)
 

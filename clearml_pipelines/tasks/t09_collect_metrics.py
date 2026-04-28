@@ -33,6 +33,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import os
+import tempfile
         SELECT predicted_at, probability, topic_id
         FROM inference_log
         WHERE predicted_at >= :since
@@ -225,7 +227,7 @@ def main():
         "reasons": reasons,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    report_path = "/tmp/monitoring_report.json"
+    report_path = os.path.join(tempfile.gettempdir(), "monitoring_report.json")
     with open(report_path, "w") as f:
         json.dump(report, f, indent=2)
     task.upload_artifact("monitoring_report.json", artifact_object=report_path)

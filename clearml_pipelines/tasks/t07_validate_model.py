@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import os
+import tempfile
 
 import json
 
@@ -115,7 +117,7 @@ def main():
     task.connect({"validation_verdict": verdict}, name="validation")
 
     validation_report = {"verdict": verdict, "checks": checks}
-    report_path = "/tmp/validation_report.json"
+    report_path = os.path.join(tempfile.gettempdir(), "validation_report.json")
     with open(report_path, "w") as f:
         json.dump(validation_report, f, indent=2)
     task.upload_artifact("validation_report.json", artifact_object=report_path)
