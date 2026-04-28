@@ -9,7 +9,8 @@ _EMOJI_RE = re.compile(
     "\U0001f600-\U0001f64f"
     "\U0001f300-\U0001f5ff"
     "\U0001f680-\U0001f6ff"
-    "\U0001f1e0-\U0001f1ff]",
+    "\U0001f1e0-\U0001f1ff"
+    "☀-⛿✀-➿]+",
     flags=re.UNICODE,
 )
 _MD_RE = re.compile(r"[*_`#|>\[\]~]")
