@@ -52,6 +52,7 @@ def cmd_monitor(args):
 
 
 def _get_https_repo_url() -> str:
+    import re
     import subprocess
 
     result = subprocess.run(
@@ -61,8 +62,8 @@ def _get_https_repo_url() -> str:
         cwd=str(Path(__file__).parent.parent),
     )
     url = result.stdout.strip()
-    if url.startswith("git@"):
-        url = url.replace("git@", "https://", 1).replace(":", "/", 1)
+    # git@github.com:user/repo.git -> https://github.com/user/repo.git
+    url = re.sub(r"^git@([^:]+):", r"https://\1/", url)
     return url
 
 
@@ -92,6 +93,7 @@ def cmd_register(args):
             task_type=task_type,
             repo=repo_url,
             script=f"clearml_pipelines/tasks/{task_name}.py",
+            working_directory=".",
             add_task_init_call=False,
         )
         print(f"Registered  {task_name:30s}  id={t.id}")
