@@ -41,11 +41,14 @@ def _get_or_create_clearml_dataset() -> tuple[Dataset, str, bool]:
             dataset_name=CLEARML_DATASET_NAME,
             only_published=False,
         )
+        if not dataset.is_final():
+            raise ValueError(f"Dataset {dataset.id} is not finalized — will recreate")
         local_copy = dataset.get_local_copy()
         parquet_path = _find_parquet_file(local_copy)
         print(f"Using existing ClearML Dataset: {dataset.id}")
         return dataset, parquet_path, False
-    except Exception:
+    except Exception as e:
+        print(f"Could not use existing dataset ({e}), downloading from HF Hub...")
         Path("data").mkdir(parents=True, exist_ok=True)
         file_path = hf_hub_download(
             repo_id=HF_REPO_ID,
@@ -61,7 +64,7 @@ def _get_or_create_clearml_dataset() -> tuple[Dataset, str, bool]:
             dataset_project=CLEARML_PROJECT_NAME,
             dataset_tags=["source:hf", f"year:{TARGET_YEAR}"],
         )
-        dataset.add_files(file_path, target_path="raw")
+        dataset.add_files(file_path, dataset_path="raw")
         dataset.upload()
         dataset.finalize()
 
