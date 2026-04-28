@@ -51,9 +51,27 @@ def cmd_monitor(args):
     run_pipeline(drift_window_days=args.drift_window_days or DRIFT_WINDOW_DAYS)
 
 
+def _get_https_repo_url() -> str:
+    import subprocess
+
+    result = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        capture_output=True,
+        text=True,
+        cwd=str(Path(__file__).parent.parent),
+    )
+    url = result.stdout.strip()
+    if url.startswith("git@"):
+        url = url.replace("git@", "https://", 1).replace(":", "/", 1)
+    return url
+
+
 def cmd_register(args):
     from clearml import Task
     from shared.config import CLEARML_PROJECT_NAME
+
+    repo_url = _get_https_repo_url()
+    print(f"Registering tasks from repo: {repo_url}")
 
     tasks = [
         ("t01_data_fetch", Task.TaskTypes.data_processing),
@@ -72,8 +90,8 @@ def cmd_register(args):
             project_name=CLEARML_PROJECT_NAME,
             task_name=task_name,
             task_type=task_type,
+            repo=repo_url,
             script=f"clearml_pipelines/tasks/{task_name}.py",
-            working_directory="clearml_pipelines",
             add_task_init_call=False,
         )
         print(f"Registered  {task_name:30s}  id={t.id}")
