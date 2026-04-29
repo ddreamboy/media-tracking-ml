@@ -119,15 +119,14 @@ def main():
 
     topic_ids = sorted([t for t in model.get_topics().keys() if t != -1])
 
-    if doc_embeddings is not None:
-        # Transform docs to get topic assignments
-        topics, _ = model.transform(docs_lemm, embeddings=doc_embeddings)
+    topics_artifact_path = get_artifact(task, "topics.npy")
+    topics = np.load(topics_artifact_path).tolist()
 
+    if doc_embeddings is not None:
         q_low, q_high = compute_ring_boundaries(
             model, topic_ids, doc_embeddings, topics
         )
     else:
-        topics = [-1] * len(df)
         q_low, q_high = 0.25, 0.60
 
     records = label_all_topics(

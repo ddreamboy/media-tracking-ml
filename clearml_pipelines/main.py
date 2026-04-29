@@ -67,6 +67,30 @@ def _get_https_repo_url() -> str:
     return url
 
 
+def cmd_hpo(args):
+    from hpo.run_hpo import main as hpo_main
+    import sys
+
+    argv = []
+    if args.n_trials is not None:
+        argv += ["--n-trials", str(args.n_trials)]
+    if args.sample_size is not None:
+        argv += ["--sample-size", str(args.sample_size)]
+    if args.study_name is not None:
+        argv += ["--study-name", args.study_name]
+    if args.preprocess_task_id:
+        argv += ["--preprocess-task-id", args.preprocess_task_id]
+    if args.embed_task_id:
+        argv += ["--embed-task-id", args.embed_task_id]
+    if args.data_path:
+        argv += ["--data-path", args.data_path]
+    if args.embeddings_path:
+        argv += ["--embeddings-path", args.embeddings_path]
+
+    sys.argv = [sys.argv[0]] + argv
+    hpo_main()
+
+
 def cmd_register(args):
     from clearml import Task
     from shared.config import CLEARML_PROJECT_NAME
@@ -130,6 +154,17 @@ def main():
         "--drift-window-days", dest="drift_window_days", type=int, default=None
     )
     p_mon.set_defaults(func=cmd_monitor)
+
+    # HPO
+    p_hpo = sub.add_parser("hpo", help="Run BERTopic hyperparameter optimisation")
+    p_hpo.add_argument("--n-trials", dest="n_trials", type=int, default=None)
+    p_hpo.add_argument("--sample-size", dest="sample_size", type=int, default=None)
+    p_hpo.add_argument("--study-name", dest="study_name", default=None)
+    p_hpo.add_argument("--preprocess-task-id", dest="preprocess_task_id", default=None)
+    p_hpo.add_argument("--embed-task-id", dest="embed_task_id", default=None)
+    p_hpo.add_argument("--data-path", dest="data_path", default=None)
+    p_hpo.add_argument("--embeddings-path", dest="embeddings_path", default=None)
+    p_hpo.set_defaults(func=cmd_hpo)
 
     # register all tasks in ClearML (no execution)
     p_reg = sub.add_parser(

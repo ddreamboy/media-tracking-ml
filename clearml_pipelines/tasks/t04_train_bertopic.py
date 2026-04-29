@@ -71,6 +71,10 @@ def main():
     training_duration = time.time() - t0
     print(f"Training done in {training_duration:.1f}s")
 
+    topics_path = os.path.join(tempfile.gettempdir(), "topics.npy")
+    np.save(topics_path, np.array(topics))
+    task.upload_artifact("topics.npy", artifact_object=topics_path)
+
     metrics = compute_metrics(model, topics, docs_lemm)
     print(f"Metrics: {metrics}")
 
@@ -100,7 +104,12 @@ def main():
 
     # Save model
     model_path = os.path.join(tempfile.gettempdir(), "bertopic_model")
-    model.save(model_path)
+    model.save(
+        model_path,
+        serialization="safetensors",
+        save_ctfidf=True,
+        save_embedding_model=False,
+    )
     task.upload_artifact("bertopic_model.model", artifact_object=model_path)
 
     # topic_embeddings
