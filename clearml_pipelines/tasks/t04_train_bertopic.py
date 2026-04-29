@@ -102,8 +102,8 @@ def main():
         "metrics", "training_duration_seconds", value=training_duration, iteration=0
     )
 
-    # Save model
-    model_path = os.path.join(tempfile.gettempdir(), "bertopic_model")
+    # Save model using safetensors to avoid cross-platform numba pickle issues
+    model_path = tempfile.mkdtemp(prefix="bertopic_model_")
     model.save(
         model_path,
         serialization="safetensors",

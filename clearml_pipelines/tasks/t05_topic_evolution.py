@@ -82,18 +82,24 @@ def main():
         print("Running topic evolution analysis...")
         prod_task = Task.get_task(task_id=prod_model_obj.task)
         prod_model_path = prod_task.artifacts["bertopic_model.model"].get_local_copy()
-        prod_model = BERTopic.load(prod_model_path)
+        try:
+            prod_model = BERTopic.load(prod_model_path)
+        except Exception as e:
+            print(f"WARNING: could not load production model ({e}), falling back to cold start")
+            evolution_report = make_cold_start_evolution(new_model)
+            prod_model = None
 
-        evolution_report = run_topic_evolution(
-            new_model=new_model,
-            prod_model=prod_model,
-            cosine_threshold_high=cosine_high,
-            cosine_threshold_low=cosine_low,
-            jaccard_threshold=jaccard_thr,
-            llm_model=llm_model,
-            llm_base_url=llm_base_url,
-            llm_api_key=llm_api_key,
-        )
+        if prod_model is not None:
+            evolution_report = run_topic_evolution(
+                new_model=new_model,
+                prod_model=prod_model,
+                cosine_threshold_high=cosine_high,
+                cosine_threshold_low=cosine_low,
+                jaccard_threshold=jaccard_thr,
+                llm_model=llm_model,
+                llm_base_url=llm_base_url,
+                llm_api_key=llm_api_key,
+            )
 
         # Cosine similarity heatmap
         sim_matrix = evolution_report.pop("_sim_matrix", None)
