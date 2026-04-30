@@ -93,6 +93,24 @@ def cmd_hpo(args):
     hpo_main()
 
 
+def cmd_run(args):
+    from clearml import Task
+    from shared.config import CLEARML_PROJECT_NAME
+
+    tasks = Task.get_tasks(
+        project_name=CLEARML_PROJECT_NAME,
+        task_name=args.task,
+        task_filter={"status": ["created", "stopped", "completed", "failed"]},
+    )
+    if not tasks:
+        print(f"Task '{args.task}' not found. Run 'register' first.")
+        return
+
+    task = tasks[0]
+    Task.enqueue(task=task, queue_name=args.queue)
+    print(f"Enqueued '{args.task}' (id={task.id}) → queue '{args.queue}'")
+
+
 def cmd_register(args):
     from clearml import Task
     from shared.config import CLEARML_PROJECT_NAME
@@ -110,6 +128,7 @@ def cmd_register(args):
         ("t07_validate_model", Task.TaskTypes.data_processing),
         ("t08_promote_model", Task.TaskTypes.data_processing),
         ("t09_collect_metrics", Task.TaskTypes.monitor),
+        ("test_llm_api", Task.TaskTypes.custom),
     ]
 
     for task_name, task_type in tasks:
@@ -167,6 +186,12 @@ def main():
     p_hpo.add_argument("--data-path", dest="data_path", default=None)
     p_hpo.add_argument("--embeddings-path", dest="embeddings_path", default=None)
     p_hpo.set_defaults(func=cmd_hpo)
+
+    # run a registered task remotely
+    p_run = sub.add_parser("run", help="Enqueue a registered task to a ClearML queue")
+    p_run.add_argument("task", choices=TASK_MODULES)
+    p_run.add_argument("--queue", default="default", help="ClearML queue name")
+    p_run.set_defaults(func=cmd_run)
 
     # register all tasks in ClearML (no execution)
     p_reg = sub.add_parser(
