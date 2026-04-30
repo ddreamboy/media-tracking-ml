@@ -16,6 +16,7 @@ TASK_MODULES = [
     "t07_validate_model",
     "t08_promote_model",
     "t09_collect_metrics",
+    "test_llm_api",
 ]
 
 
@@ -68,8 +69,9 @@ def _get_https_repo_url() -> str:
 
 
 def cmd_hpo(args):
-    from hpo.run_hpo import main as hpo_main
     import sys
+
+    from hpo.run_hpo import main as hpo_main
 
     argv = []
     if args.n_trials is not None:
