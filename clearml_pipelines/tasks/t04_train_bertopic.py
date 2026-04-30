@@ -107,7 +107,7 @@ def main():
     model.save(
         model_path,
         serialization="safetensors",
-        save_ctfidf=True,
+        save_ctfidf=False,
         save_embedding_model=False,
     )
     task.upload_artifact("bertopic_model.model", artifact_object=model_path)
