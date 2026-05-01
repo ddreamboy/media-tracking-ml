@@ -67,18 +67,30 @@ def run_with_args(args) -> None:
         task_name="HPO_BERTopic",
         task_type=Task.TaskTypes.optimizer,
     )
-    task.connect(
-        {
-            "n_trials": args.n_trials,
-            "sample_size": args.sample_size,
-            "n_random": N_RANDOM,
-            "n_tpe": N_TPE,
-            "search_space": SEARCH_SPACE,
-        }
+
+    # Fix: point remote agent directly at run_hpo.py, not main.py
+    task.set_script(
+        entry_point="hpo/run_hpo.py",
+        working_dir="clearml_pipelines",
     )
+
+    params = {
+        "n_trials": args.n_trials if args.n_trials is not None else 30,
+        "sample_size": args.sample_size if args.sample_size is not None else 100000,
+        "study_name": args.study_name if args.study_name is not None else "bertopic_hpo",
+        "n_random": N_RANDOM,
+        "n_tpe": N_TPE,
+        "search_space": SEARCH_SPACE,
+    }
+    task.connect(params)
 
     if task.execute_remotely(queue_name="gpu"):
         return
+
+    # Read back possibly overridden values from ClearML UI
+    args.n_trials = int(params["n_trials"])
+    args.sample_size = int(params["sample_size"])
+    args.study_name = str(params["study_name"])
 
     import json
 
@@ -126,7 +138,7 @@ def run_with_args(args) -> None:
     embeddings = np.load(embeddings_path)
     assert len(df) == len(embeddings), "Mismatch between df and embeddings length"
 
-    sample_size = int(task.get_parameters().get("Args/sample_size", args.sample_size))
+    sample_size = args.sample_size
     total = len(df)
     if sample_size > 0 and sample_size < total:
         rng = np.random.default_rng(RANDOM_STATE)
