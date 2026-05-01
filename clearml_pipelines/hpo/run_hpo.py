@@ -188,7 +188,8 @@ def run_with_args(args) -> None:
     }
 
     for k, v in best_hparams.items():
-        logger.report_scalar("best_hparams", k, value=float(v), iteration=0)
+        if isinstance(v, (int, float)):
+            logger.report_scalar("best_hparams", k, value=float(v), iteration=0)
     logger.report_scalar("hpo", "best_objective", value=best_value, iteration=0)
     logger.report_scalar("hpo", "n_trials", value=len(study.trials), iteration=0)
     logger.report_scalar("hpo", "sample_size", value=len(docs), iteration=0)
