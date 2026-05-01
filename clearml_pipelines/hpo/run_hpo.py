@@ -45,7 +45,9 @@ def _get_latest_completed_task(task_name: str):
     )
     tasks_with_artifacts = [t for t in tasks if t.artifacts]
     if not tasks_with_artifacts:
-        raise RuntimeError(f"No completed task named '{task_name}' with artifacts found")
+        raise RuntimeError(
+            f"No completed task named '{task_name}' with artifacts found"
+        )
     return tasks_with_artifacts[0]
 
 
@@ -86,7 +88,9 @@ def run_with_args(args) -> None:
     params = {
         "n_trials": args.n_trials if args.n_trials is not None else 30,
         "sample_size": args.sample_size if args.sample_size is not None else 100000,
-        "study_name": args.study_name if args.study_name is not None else "bertopic_hpo",
+        "study_name": args.study_name
+        if args.study_name is not None
+        else "bertopic_hpo",
         "n_random": N_RANDOM,
         "n_tpe": N_TPE,
         "search_space": SEARCH_SPACE,
@@ -194,7 +198,9 @@ def run_with_args(args) -> None:
     logger.report_scalar("hpo", "n_trials", value=len(study.trials), iteration=0)
     logger.report_scalar("hpo", "sample_size", value=len(docs), iteration=0)
 
+    import os
     import tempfile
+
     tmp = tempfile.gettempdir()
     hparams_path = os.path.join(tmp, "best_hparams.json")
     with open(hparams_path, "w") as f:
