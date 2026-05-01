@@ -194,13 +194,15 @@ def run_with_args(args) -> None:
     logger.report_scalar("hpo", "n_trials", value=len(study.trials), iteration=0)
     logger.report_scalar("hpo", "sample_size", value=len(docs), iteration=0)
 
-    hparams_path = "/tmp/best_hparams.json"
+    import tempfile
+    tmp = tempfile.gettempdir()
+    hparams_path = os.path.join(tmp, "best_hparams.json")
     with open(hparams_path, "w") as f:
         json.dump(best_hparams, f, indent=2)
     task.upload_artifact("best_hparams.json", artifact_object=hparams_path)
 
     trials_df = study.trials_dataframe()
-    trials_path = "/tmp/hpo_trials.csv"
+    trials_path = os.path.join(tmp, "hpo_trials.csv")
     trials_df.to_csv(trials_path, index=False)
     task.upload_artifact("hpo_trials.csv", artifact_object=trials_path)
 
