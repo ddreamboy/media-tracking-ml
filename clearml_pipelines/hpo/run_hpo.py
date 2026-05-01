@@ -34,6 +34,19 @@ N_RANDOM = 10
 N_TPE = 20
 
 
+def _get_latest_completed_task(project_name: str, task_name: str):
+    tasks = Task.get_tasks(
+        project_name=project_name,
+        task_name=task_name,
+        task_filter={"status": ["completed"], "order_by": ["-last_update"]},
+    )
+    if not tasks:
+        raise RuntimeError(
+            f"No completed task named '{task_name}' found in project '{project_name}'"
+        )
+    return tasks[0]
+
+
 def load_from_clearml(
     preprocess_task_id: str = None, embed_task_id: str = None
 ) -> tuple[str, str]:
@@ -41,20 +54,14 @@ def load_from_clearml(
     if preprocess_task_id:
         preprocess_task = Task.get_task(task_id=preprocess_task_id)
     else:
-        preprocess_task = Task.get_task(
-            project_name=CLEARML_PROJECT_NAME,
-            task_name="t02_preprocess",
-        )
+        preprocess_task = _get_latest_completed_task(CLEARML_PROJECT_NAME, "t02_preprocess")
     print(f"Using preprocess task: {preprocess_task.id} ({preprocess_task.name})")
     data_path = preprocess_task.artifacts["preprocessed.parquet"].get_local_copy()
 
     if embed_task_id:
         embed_task = Task.get_task(task_id=embed_task_id)
     else:
-        embed_task = Task.get_task(
-            project_name=CLEARML_PROJECT_NAME,
-            task_name="t03_embed",
-        )
+        embed_task = _get_latest_completed_task(CLEARML_PROJECT_NAME, "t03_embed")
     print(f"Using embed task: {embed_task.id} ({embed_task.name})")
     embeddings_path = embed_task.artifacts["embeddings.npy"].get_local_copy()
 
