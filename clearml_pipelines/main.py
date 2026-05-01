@@ -69,28 +69,8 @@ def _get_https_repo_url() -> str:
 
 
 def cmd_hpo(args):
-    import sys
-
-    from hpo.run_hpo import main as hpo_main
-
-    argv = []
-    if args.n_trials is not None:
-        argv += ["--n-trials", str(args.n_trials)]
-    if args.sample_size is not None:
-        argv += ["--sample-size", str(args.sample_size)]
-    if args.study_name is not None:
-        argv += ["--study-name", args.study_name]
-    if args.preprocess_task_id:
-        argv += ["--preprocess-task-id", args.preprocess_task_id]
-    if args.embed_task_id:
-        argv += ["--embed-task-id", args.embed_task_id]
-    if args.data_path:
-        argv += ["--data-path", args.data_path]
-    if args.embeddings_path:
-        argv += ["--embeddings-path", args.embeddings_path]
-
-    sys.argv = [sys.argv[0], "hpo"] + argv
-    hpo_main()
+    from hpo.run_hpo import run_with_args
+    run_with_args(args)
 
 
 def cmd_run(args):

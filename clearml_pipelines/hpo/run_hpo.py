@@ -61,17 +61,7 @@ def load_from_clearml(
     return data_path, embeddings_path
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--preprocess-task-id", default=None)
-    parser.add_argument("--embed-task-id", default=None)
-    parser.add_argument("--data-path", default=None)
-    parser.add_argument("--embeddings-path", default=None)
-    parser.add_argument("--n-trials", type=int, default=30)
-    parser.add_argument("--sample-size", type=int, default=100000)
-    parser.add_argument("--study-name", default="bertopic_hpo")
-    args = parser.parse_args()
-
+def run_with_args(args) -> None:
     task = Task.init(
         project_name=CLEARML_PROJECT_NAME,
         task_name="HPO_BERTopic",
@@ -91,6 +81,7 @@ def main():
         return
 
     import json
+
     import numpy as np
     import optuna
     import pandas as pd
@@ -195,6 +186,18 @@ def main():
     print("Next Training Pipeline run will automatically use these parameters.")
 
     task.close()
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--preprocess-task-id", dest="preprocess_task_id", default=None)
+    parser.add_argument("--embed-task-id", dest="embed_task_id", default=None)
+    parser.add_argument("--data-path", dest="data_path", default=None)
+    parser.add_argument("--embeddings-path", dest="embeddings_path", default=None)
+    parser.add_argument("--n-trials", dest="n_trials", type=int, default=30)
+    parser.add_argument("--sample-size", dest="sample_size", type=int, default=100000)
+    parser.add_argument("--study-name", dest="study_name", default="bertopic_hpo")
+    run_with_args(parser.parse_args())
 
 
 if __name__ == "__main__":
