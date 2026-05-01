@@ -61,63 +61,14 @@ def load_from_clearml(
     return data_path, embeddings_path
 
 
-def objective(trial, docs: list[str], embeddings) -> float:
-    hparams = {
-        "n_neighbors": trial.suggest_int("n_neighbors", 15, 100),
-        "n_components": trial.suggest_int("n_components", 5, 15),
-        "min_cluster_size": trial.suggest_int("min_cluster_size", 50, 200),
-        "min_samples": trial.suggest_int("min_samples", 5, 150),
-        "umap_metric": "cosine",
-        "hdbscan_metric": "euclidean",
-        "top_n_words": 10,
-    }
-
-    try:
-        model = build_bertopic(hparams, corpus_size=len(docs))
-        topics, _ = model.fit_transform(docs, embeddings=embeddings)
-        metrics = compute_metrics(model, topics, docs)
-
-        dbcv = metrics["dbcv_score"]
-        noise_ratio = metrics["noise_ratio"]
-
-        if np.isnan(dbcv):
-            return -999.0
-
-        # L = DBCV - 0.5 * NoiseRatio
-        return dbcv - 0.5 * noise_ratio
-    except Exception as e:
-        print(f"Trial {trial.number} failed: {e}")
-        return -999.0
-
-
 def main():
     parser = argparse.ArgumentParser()
-    # Источник данных: ClearML task ID
-    parser.add_argument(
-        "--preprocess-task-id",
-        default=None,
-        help="ClearML task ID для t02_preprocess (по умолчанию — последний)",
-    )
-    parser.add_argument(
-        "--embed-task-id",
-        default=None,
-        help="ClearML task ID для t03_embed (по умолчанию — последний)",
-    )
-    # Источник данных: локальные файлы (перекрывает ClearML)
-    parser.add_argument(
-        "--data-path", default=None, help="Путь к preprocessed.parquet (локально)"
-    )
-    parser.add_argument(
-        "--embeddings-path", default=None, help="Путь к embeddings.npy (локально)"
-    )
-    # HPO параметры
+    parser.add_argument("--preprocess-task-id", default=None)
+    parser.add_argument("--embed-task-id", default=None)
+    parser.add_argument("--data-path", default=None)
+    parser.add_argument("--embeddings-path", default=None)
     parser.add_argument("--n-trials", type=int, default=30)
-    parser.add_argument(
-        "--sample-size",
-        type=int,
-        default=100000,
-        help="Размер выборки для HPO (0 = весь датасет)",
-    )
+    parser.add_argument("--sample-size", type=int, default=100000)
     parser.add_argument("--study-name", default="bertopic_hpo")
     args = parser.parse_args()
 
@@ -136,18 +87,40 @@ def main():
         }
     )
 
-    if task.execute_remote(queue_name="gpu"):
+    if task.execute_remotely(queue_name="gpu"):
         return
 
     import json
-
     import numpy as np
     import optuna
     import pandas as pd
+    from shared.bertopic_utils import build_bertopic, compute_metrics
 
     logger = task.get_logger()
 
-    # Загрузка данных
+    def objective(trial, docs: list[str], embeddings) -> float:
+        hparams = {
+            "n_neighbors": trial.suggest_int("n_neighbors", 15, 100),
+            "n_components": trial.suggest_int("n_components", 5, 15),
+            "min_cluster_size": trial.suggest_int("min_cluster_size", 50, 200),
+            "min_samples": trial.suggest_int("min_samples", 5, 150),
+            "umap_metric": "cosine",
+            "hdbscan_metric": "euclidean",
+            "top_n_words": 10,
+        }
+        try:
+            model = build_bertopic(hparams, corpus_size=len(docs))
+            topics, _ = model.fit_transform(docs, embeddings=embeddings)
+            metrics = compute_metrics(model, topics, docs)
+            dbcv = metrics["dbcv_score"]
+            noise_ratio = metrics["noise_ratio"]
+            if np.isnan(dbcv):
+                return -999.0
+            return dbcv - 0.5 * noise_ratio
+        except Exception as e:
+            print(f"Trial {trial.number} failed: {e}")
+            return -999.0
+
     if args.data_path and args.embeddings_path:
         data_path = args.data_path
         embeddings_path = args.embeddings_path
@@ -162,7 +135,6 @@ def main():
     embeddings = np.load(embeddings_path)
     assert len(df) == len(embeddings), "Mismatch between df and embeddings length"
 
-    # Сэмплирование для ускорения HPO
     sample_size = int(task.get_parameters().get("Args/sample_size", args.sample_size))
     total = len(df)
     if sample_size > 0 and sample_size < total:
@@ -178,10 +150,7 @@ def main():
     docs = df["text_lemm"].tolist()
     print(f"Running {args.n_trials} trials")
 
-    sampler = optuna.samplers.TPESampler(
-        n_startup_trials=N_RANDOM,
-        seed=RANDOM_STATE,
-    )
+    sampler = optuna.samplers.TPESampler(n_startup_trials=N_RANDOM, seed=RANDOM_STATE)
     study = optuna.create_study(
         direction="maximize",
         sampler=sampler,
