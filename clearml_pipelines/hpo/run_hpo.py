@@ -61,7 +61,7 @@ def load_from_clearml(
     return data_path, embeddings_path
 
 
-def objective(trial, docs: list[str], embeddings: np.ndarray) -> float:
+def objective(trial, docs: list[str], embeddings) -> float:
     hparams = {
         "n_neighbors": trial.suggest_int("n_neighbors", 15, 100),
         "n_components": trial.suggest_int("n_components", 5, 15),
