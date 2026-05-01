@@ -15,17 +15,12 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import numpy as np
-import optuna
-import pandas as pd
 from clearml import Task
-from shared.bertopic_utils import build_bertopic, compute_metrics
 from shared.config import CLEARML_PROJECT_NAME, RANDOM_STATE
 
 SEARCH_SPACE = {
@@ -131,9 +126,6 @@ def main():
         task_name="HPO_BERTopic",
         task_type=Task.TaskTypes.optimizer,
     )
-    task.execute_remote(queue_name="gpu")
-    logger = task.get_logger()
-
     task.connect(
         {
             "n_trials": args.n_trials,
@@ -143,6 +135,17 @@ def main():
             "search_space": SEARCH_SPACE,
         }
     )
+
+    if task.execute_remote(queue_name="gpu"):
+        return
+
+    import json
+
+    import numpy as np
+    import optuna
+    import pandas as pd
+
+    logger = task.get_logger()
 
     # Загрузка данных
     if args.data_path and args.embeddings_path:
