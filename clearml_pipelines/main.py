@@ -89,7 +89,7 @@ def cmd_hpo(args):
     if args.embeddings_path:
         argv += ["--embeddings-path", args.embeddings_path]
 
-    sys.argv = [sys.argv[0]] + argv
+    sys.argv = [sys.argv[0], "hpo"] + argv
     hpo_main()
 
 
