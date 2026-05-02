@@ -1,0 +1,4 @@
+,n_topics,noise_ratio,classified_ratio,dbcv,cv_coherence,topic_diversity
+Config1,231.0,0.5324,0.4676,-0.9672,0.7821,0.7671
+Config1 + reduce_outliers,231.0,0.1689,0.8311,-0.9793,0.7703,0.6749
+Δ,0.0,-0.3635,0.36349999999999993,-0.0121,-0.011800000000000033,-0.09219999999999995

@@ -14,3 +14,4 @@ setuptools = "<=71.0"
 [tasks]
 cpu = "clearml-agent daemon --queue default --detached"
 gpu = "clearml-agent daemon --queue gpu --detached"
+gpu-inference = "clearml-agent daemon --queue gpu-inference --detached"

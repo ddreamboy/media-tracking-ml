@@ -1,0 +1,27 @@
+{
+  "thresholds": {
+    "c_tf_idf": 0.4,
+    "embeddings": 0.6
+  },
+  "reassigned_step1_ctfidf": 978,
+  "reassigned_step2_embeddings": 35364,
+  "reassigned_total": 36342,
+  "metrics_before": {
+    "label": "Config1",
+    "n_topics": 231,
+    "noise_ratio": 0.5324,
+    "classified_ratio": 0.4676,
+    "dbcv": -0.9672,
+    "cv_coherence": 0.7821,
+    "topic_diversity": 0.7671
+  },
+  "metrics_after": {
+    "label": "Config1 + reduce_outliers",
+    "n_topics": 231,
+    "noise_ratio": 0.1689,
+    "classified_ratio": 0.8311,
+    "dbcv": -0.9793,
+    "cv_coherence": 0.7703,
+    "topic_diversity": 0.6749
+  }
+}
