@@ -22,3 +22,4 @@ results/bertopic*
 research/results/hyperparams/bertopic_top*
 research/models/bertopic*
 research/models/topic_evolution/bertopic*
+research/results/noise_filtering/bertopic*
