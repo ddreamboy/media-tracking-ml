@@ -3,25 +3,25 @@
     "c_tf_idf": 0.4,
     "embeddings": 0.6
   },
-  "reassigned_step1_ctfidf": 978,
-  "reassigned_step2_embeddings": 35364,
-  "reassigned_total": 36342,
+  "reassigned_step1_ctfidf": 502,
+  "reassigned_step2_embeddings": 16297,
+  "reassigned_total": 16799,
   "metrics_before": {
-    "label": "Config1",
-    "n_topics": 231,
-    "noise_ratio": 0.5324,
-    "classified_ratio": 0.4676,
-    "dbcv": -0.9672,
-    "cv_coherence": 0.7821,
-    "topic_diversity": 0.7671
+    "label": "best_config",
+    "n_topics": 257,
+    "noise_ratio": 0.4905,
+    "classified_ratio": 0.5095,
+    "dbcv": 0.5861,
+    "cv_coherence": 0.7405,
+    "topic_diversity": 0.7673
   },
   "metrics_after": {
-    "label": "Config1 + reduce_outliers",
-    "n_topics": 231,
-    "noise_ratio": 0.1689,
-    "classified_ratio": 0.8311,
-    "dbcv": -0.9793,
-    "cv_coherence": 0.7703,
-    "topic_diversity": 0.6749
+    "label": "best_config + reduce_outliers",
+    "n_topics": 257,
+    "noise_ratio": 0.1545,
+    "classified_ratio": 0.8455,
+    "dbcv": -0.9093,
+    "cv_coherence": 0.7287,
+    "topic_diversity": 0.6821
   }
 }
