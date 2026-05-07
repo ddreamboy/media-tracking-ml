@@ -128,7 +128,7 @@ def run_pipeline(
         parameter_override={
             "General/upstream_task_ids": (
                 "${t04_reduce_outliers.id},${t02_preprocess.id},"
-                "${t05_topic_evolution.id},${t03_embed.id}"
+                "${t05_topic_evolution.id},${t03_embed.id},${t04_train_bertopic.id}"
             ),
         },
         execution_queue="default",
