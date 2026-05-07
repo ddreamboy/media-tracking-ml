@@ -130,6 +130,7 @@ def compute_metrics(model, topics: list[int], docs: list[str]) -> dict:
             texts=tokenized,
             dictionary=dictionary,
             coherence="c_v",
+            processes=1,
         )
         coherence_cv = float(cm.get_coherence())
     except Exception as e:
