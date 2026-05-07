@@ -33,7 +33,7 @@ def run_pipeline(
     sample_size: int = 0,
 ):
     if is_training_in_progress():
-        print("Training already in progress — aborting to prevent parallel runs")
+        print("Training already in progress - aborting to prevent parallel runs")
         return
 
     if end_date is None:

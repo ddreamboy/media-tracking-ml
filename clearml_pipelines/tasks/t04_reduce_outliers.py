@@ -1,4 +1,5 @@
 """Task t04_reduce_outliers: Two-step noise reduction via BERTopic reduce_outliers"""
+
 import sys
 from pathlib import Path
 
@@ -54,8 +55,12 @@ def main():
     try:
         with open(THRESHOLDS_PATH) as f:
             cfg = json.load(f).get("reduce_outliers", {})
-            threshold_ctfidf_default = float(cfg.get("threshold_ctfidf", threshold_ctfidf_default))
-            threshold_emb_default = float(cfg.get("threshold_emb", threshold_emb_default))
+            threshold_ctfidf_default = float(
+                cfg.get("threshold_ctfidf", threshold_ctfidf_default)
+            )
+            threshold_emb_default = float(
+                cfg.get("threshold_emb", threshold_emb_default)
+            )
     except Exception as e:
         print(f"WARNING: could not load thresholds.json: {e}")
 
@@ -97,7 +102,15 @@ def main():
     n_outliers_before = int((np.array(topics_orig) == -1).sum())
     print(f"Noise before: {noise_before:.4f} ({n_outliers_before} outlier docs)")
 
-    # Step 1: c-tf-idf — fast, no embeddings required
+    from sklearn.exceptions import NotFittedError as _NotFittedError
+
+    try:
+        topic_model.vectorizer_model.transform(["test"])
+    except _NotFittedError:
+        print("Vectorizer not fitted - refitting from docs_lemm")
+        topic_model.vectorizer_model.fit(docs_lemm)
+
+    # Step 1: c-tf-idf - fast, no embeddings required
     topics_after_ctfidf = topic_model.reduce_outliers(
         docs_clean,
         topics_orig,
@@ -109,9 +122,11 @@ def main():
         - (np.array(topics_after_ctfidf) == -1).sum()
     )
     noise_step1 = float((np.array(topics_after_ctfidf) == -1).mean())
-    print(f"Step 1 (c-tf-idf, thr={threshold_ctfidf}): reassigned={reassigned_step1}, noise={noise_step1:.4f}")
+    print(
+        f"Step 1 (c-tf-idf, thr={threshold_ctfidf}): reassigned={reassigned_step1}, noise={noise_step1:.4f}"
+    )
 
-    # Step 2: embeddings — cosine similarity to topic centroid
+    # Step 2: embeddings - cosine similarity to topic centroid
     topics_after_emb = topic_model.reduce_outliers(
         docs_clean,
         topics_after_ctfidf,
@@ -124,7 +139,9 @@ def main():
         - (np.array(topics_after_emb) == -1).sum()
     )
     noise_after = float((np.array(topics_after_emb) == -1).mean())
-    print(f"Step 2 (embeddings, thr={threshold_emb}): reassigned={reassigned_step2}, noise={noise_after:.4f}")
+    print(
+        f"Step 2 (embeddings, thr={threshold_emb}): reassigned={reassigned_step2}, noise={noise_after:.4f}"
+    )
 
     # Recompute c-TF-IDF representations with updated topic assignments
     topic_model.update_topics(docs_lemm, topics=topics_after_emb)
@@ -136,26 +153,49 @@ def main():
     reassigned_mask = (orig_arr == -1) & (after_arr != -1)
     if reassigned_mask.sum() > 0:
         import pandas as _pd
+
         topic_counts = _pd.Series(after_arr[reassigned_mask]).value_counts()
         top1_share = topic_counts.iloc[0] / reassigned_mask.sum()
-        print(f"Reassigned {reassigned_mask.sum()} docs across {len(topic_counts)} topics (top-1 share: {top1_share:.1%})")
+        print(
+            f"Reassigned {reassigned_mask.sum()} docs across {len(topic_counts)} topics (top-1 share: {top1_share:.1%})"
+        )
         if top1_share > 0.30:
-            print("WARNING: >30% of outliers went to a single topic — consider lowering threshold_emb")
+            print(
+                "WARNING: >30% of outliers went to a single topic - consider lowering threshold_emb"
+            )
 
     # Log metrics to ClearML
-    logger.report_scalar("noise_reduction", "noise_before", value=noise_before, iteration=0)
-    logger.report_scalar("noise_reduction", "noise_after", value=noise_after, iteration=0)
-    logger.report_scalar("noise_reduction", "delta_noise", value=noise_after - noise_before, iteration=0)
-    logger.report_scalar("noise_reduction", "reassigned_step1_ctfidf", value=reassigned_step1, iteration=0)
-    logger.report_scalar("noise_reduction", "reassigned_step2_emb", value=reassigned_step2, iteration=0)
-    logger.report_scalar("noise_reduction", "reassigned_total", value=reassigned_step1 + reassigned_step2, iteration=0)
+    logger.report_scalar(
+        "noise_reduction", "noise_before", value=noise_before, iteration=0
+    )
+    logger.report_scalar(
+        "noise_reduction", "noise_after", value=noise_after, iteration=0
+    )
+    logger.report_scalar(
+        "noise_reduction", "delta_noise", value=noise_after - noise_before, iteration=0
+    )
+    logger.report_scalar(
+        "noise_reduction",
+        "reassigned_step1_ctfidf",
+        value=reassigned_step1,
+        iteration=0,
+    )
+    logger.report_scalar(
+        "noise_reduction", "reassigned_step2_emb", value=reassigned_step2, iteration=0
+    )
+    logger.report_scalar(
+        "noise_reduction",
+        "reassigned_total",
+        value=reassigned_step1 + reassigned_step2,
+        iteration=0,
+    )
 
-    # Upload updated topics.npy (same artifact name — overrides t04's in upstream chain)
+    # Upload updated topics.npy (same artifact name - overrides t04's in upstream chain)
     topics_out_path = os.path.join(tempfile.gettempdir(), "topics.npy")
     np.save(topics_out_path, np.array(topics_after_emb))
     task.upload_artifact("topics.npy", artifact_object=topics_out_path)
 
-    # Upload updated model (same artifact name — overrides t04's in upstream chain)
+    # Upload updated model (same artifact name - overrides t04's in upstream chain)
     model_out_path = tempfile.mkdtemp(prefix="bertopic_reduced_")
     topic_model.save(
         model_out_path,

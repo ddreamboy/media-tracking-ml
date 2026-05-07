@@ -1,11 +1,12 @@
 """Task t01: Get data from HF Hub and ClearML Dataset."""
+
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import tempfile
-
 import json
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -43,7 +44,7 @@ def _get_or_create_clearml_dataset() -> tuple[Dataset, str, bool]:
             only_published=False,
         )
         if not dataset.is_final():
-            raise ValueError(f"Dataset {dataset.id} is not finalized — will recreate")
+            raise ValueError(f"Dataset {dataset.id} is not finalized - will recreate")
         local_copy = dataset.get_local_copy()
         parquet_path = _find_parquet_file(local_copy)
         print(f"Using existing ClearML Dataset: {dataset.id}")
@@ -91,11 +92,13 @@ def main():
 
     df = pd.read_parquet(parquet_path)
 
-    df = df.rename(columns={
-        "id_post": "post_id",
-        "channel_name": "channel",
-        "post_date": "created_at",
-    })
+    df = df.rename(
+        columns={
+            "id_post": "post_id",
+            "channel_name": "channel",
+            "post_date": "created_at",
+        }
+    )
 
     required_cols = {"post_id", "channel", "text", "created_at"}
     missing_cols = required_cols - set(df.columns)
