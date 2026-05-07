@@ -1,4 +1,8 @@
 {
+  "reduce_outliers": {
+    "threshold_ctfidf": 0.40,
+    "threshold_emb": 0.60
+  },
   "validation": {
     "dbcv_min_relative": 0.95,
     "cv_coherence_absolute_min": 0.70,

@@ -1,4 +1,4 @@
-"""Training + Validation + Promotion Pipeline: t01 -> t02 -> t03 -> t04 -> t05 -> t06 -> t07 -> t08"""
+"""Training + Validation + Promotion Pipeline: t01 -> t02 -> t03 -> t04 -> t04_reduce_outliers -> t05/t07 -> t06 -> t08"""
 
 import sys
 from pathlib import Path
@@ -20,10 +20,11 @@ from shared.config import (
 # t01 -> t02(raw_data.parquet)
 # t02 -> t03(preprocessed.parquet)
 # t02,t03 -> t04(preprocessed.parquet, embeddings.npy, embedding_meta.json)
-# t04,t03 -> t05(bertopic_model.model, embedding_meta.json)
-# t04,t02,t05,t03 -> t06(bertopic_model.model, topic_embeddings.npy, preprocessed.parquet, evolution_report.json, embeddings.npy)
+# t04,t03,t02 -> t04_reduce_outliers(bertopic_model.model*, topics.npy*)  *overrides t04 in upstream chain
+# t04_reduce_outliers,t03 -> t05(bertopic_model.model, embedding_meta.json)
+# t04_reduce_outliers,t02,t05,t03 -> t06(bertopic_model.model, topics.npy, preprocessed.parquet, evolution_report.json, embeddings.npy)
 # t04 -> t07(training_meta.json)
-# t07,t06,t05,t04 -> t08(validation_report.json, topic_map_llm.csv, evolution_report.json, bertopic_model.model, ...)
+# t07,t06,t05,t04_reduce_outliers,t04 -> t08(validation_report.json, topic_map_llm.csv, bertopic_model.model, ...)
 
 
 def run_pipeline(
@@ -98,12 +99,24 @@ def run_pipeline(
         execution_queue="gpu",
     )
     pipe.add_step(
+        name="t04_reduce_outliers",
+        base_task_project=CLEARML_PROJECT_NAME,
+        base_task_name="t04_reduce_outliers",
+        parents=["t04_train_bertopic", "t03_embed", "t02_preprocess"],
+        parameter_override={
+            "General/upstream_task_ids": (
+                "${t04_train_bertopic.id},${t03_embed.id},${t02_preprocess.id}"
+            ),
+        },
+        execution_queue="default",
+    )
+    pipe.add_step(
         name="t05_topic_evolution",
         base_task_project=CLEARML_PROJECT_NAME,
         base_task_name="t05_topic_evolution",
-        parents=["t04_train_bertopic"],
+        parents=["t04_reduce_outliers"],
         parameter_override={
-            "General/upstream_task_ids": "${t04_train_bertopic.id},${t03_embed.id}",
+            "General/upstream_task_ids": "${t04_reduce_outliers.id},${t03_embed.id}",
         },
         execution_queue="default",
     )
@@ -111,10 +124,10 @@ def run_pipeline(
         name="t06_topic_labeling",
         base_task_project=CLEARML_PROJECT_NAME,
         base_task_name="t06_topic_labeling",
-        parents=["t04_train_bertopic", "t05_topic_evolution"],
+        parents=["t04_reduce_outliers", "t05_topic_evolution"],
         parameter_override={
             "General/upstream_task_ids": (
-                "${t04_train_bertopic.id},${t02_preprocess.id},"
+                "${t04_reduce_outliers.id},${t02_preprocess.id},"
                 "${t05_topic_evolution.id},${t03_embed.id}"
             ),
         },
@@ -138,7 +151,7 @@ def run_pipeline(
         parameter_override={
             "General/upstream_task_ids": (
                 "${t07_validate_model.id},${t06_topic_labeling.id},"
-                "${t05_topic_evolution.id},${t04_train_bertopic.id}"
+                "${t05_topic_evolution.id},${t04_reduce_outliers.id},${t04_train_bertopic.id}"
             ),
         },
         execution_queue="default",
