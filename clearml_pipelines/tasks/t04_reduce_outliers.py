@@ -107,8 +107,8 @@ def main():
     try:
         topic_model.vectorizer_model.transform(["test"])
     except _NotFittedError:
-        print("Vectorizer not fitted - refitting from docs_lemm")
-        topic_model.vectorizer_model.fit(docs_lemm)
+        print("Vectorizer/ctfidf not fitted - restoring via update_topics (save_ctfidf=False)")
+        topic_model.update_topics(docs_lemm, topics=topics_orig)
 
     # Step 1: c-tf-idf - fast, no embeddings required
     topics_after_ctfidf = topic_model.reduce_outliers(
@@ -189,6 +189,17 @@ def main():
         value=reassigned_step1 + reassigned_step2,
         iteration=0,
     )
+
+    # Update training_meta.json with post-reduction noise_ratio so t07 validates correct metrics
+    training_meta_path = get_artifact(task, "training_meta.json")
+    with open(training_meta_path) as f:
+        training_meta = json.load(f)
+    training_meta["metrics"]["noise_ratio"] = noise_after
+    training_meta["noise_ratio_before_reduction"] = noise_before
+    meta_out_path = os.path.join(tempfile.gettempdir(), "training_meta.json")
+    with open(meta_out_path, "w") as f:
+        json.dump(training_meta, f, indent=2)
+    task.upload_artifact("training_meta.json", artifact_object=meta_out_path)
 
     # Upload updated topics.npy (same artifact name - overrides t04's in upstream chain)
     topics_out_path = os.path.join(tempfile.gettempdir(), "topics.npy")

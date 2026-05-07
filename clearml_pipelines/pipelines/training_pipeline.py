@@ -23,7 +23,7 @@ from shared.config import (
 # t04,t03,t02 -> t04_reduce_outliers(bertopic_model.model*, topics.npy*)  *overrides t04 in upstream chain
 # t04_reduce_outliers,t03 -> t05(bertopic_model.model, embedding_meta.json)
 # t04_reduce_outliers,t02,t05,t03 -> t06(bertopic_model.model, topics.npy, preprocessed.parquet, evolution_report.json, embeddings.npy)
-# t04 -> t07(training_meta.json)
+# t04_reduce_outliers -> t07(training_meta.json with post-reduction noise_ratio)
 # t07,t06,t05,t04_reduce_outliers,t04 -> t08(validation_report.json, topic_map_llm.csv, bertopic_model.model, ...)
 
 
@@ -137,9 +137,9 @@ def run_pipeline(
         name="t07_validate_model",
         base_task_project=CLEARML_PROJECT_NAME,
         base_task_name="t07_validate_model",
-        parents=["t04_train_bertopic"],
+        parents=["t04_reduce_outliers"],
         parameter_override={
-            "General/upstream_task_ids": "${t04_train_bertopic.id}",
+            "General/upstream_task_ids": "${t04_reduce_outliers.id}",
         },
         execution_queue="default",
     )
