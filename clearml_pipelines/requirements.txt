@@ -24,3 +24,5 @@ openai
 pymorphy3
 pymorphy2-dicts-ru
 razdel
+sqlalchemy
+psycopg2-binary
