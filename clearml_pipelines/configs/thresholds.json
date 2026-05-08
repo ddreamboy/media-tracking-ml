@@ -6,7 +6,7 @@
   "validation": {
     "dbcv_min_relative": 0.95,
     "cv_coherence_absolute_min": 0.70,
-    "noise_ratio_max": 0.65,
+    "noise_ratio_max": 0.2,
     "num_topics_min": 20
   },
   "topic_evolution": {

@@ -1,6 +1,11 @@
 """Task t09: Collect inference metrics and trigger retraining if drift detected"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import json
+import os
+import tempfile
 from datetime import datetime, timedelta, timezone
 
 import pandas as pd
@@ -29,12 +34,6 @@ def fetch_inference_log(
     engine = sqlalchemy.create_engine(connection_string)
     since = datetime.now(timezone.utc) - timedelta(days=window_days)
     query = """
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-import os
-import tempfile
         SELECT predicted_at, probability, topic_id
         FROM inference_log
         WHERE predicted_at >= :since
