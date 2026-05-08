@@ -48,9 +48,8 @@ def cmd_validate(args):
 
 def cmd_monitor(args):
     from pipelines.monitoring_pipeline import run_pipeline
-    from shared.config import DRIFT_WINDOW_DAYS
 
-    run_pipeline(drift_window_days=args.drift_window_days or DRIFT_WINDOW_DAYS)
+    run_pipeline(drift_window_days=args.drift_window_days)
 
 
 def _get_https_repo_url() -> str:
