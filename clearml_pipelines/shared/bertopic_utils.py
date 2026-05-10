@@ -13,7 +13,7 @@ def scale_hparams(base_hparams: dict, corpus_size: int) -> dict:
     scaled["min_cluster_size"] = max(
         10, floor(base_hparams["min_cluster_size"] * scale)
     )
-    scaled["min_df"] = max(1, min(floor(base_hparams.get("min_df", 10) * scale), 10))
+    scaled["min_df"] = 1
     return scaled
 
 
@@ -43,7 +43,7 @@ def build_bertopic(hparams: dict, corpus_size: int = N_FULL_CORPUS):
     vectorizer_model = CountVectorizer(
         analyzer="word",
         ngram_range=(1, 2),
-        min_df=scaled.get("min_df", 2),
+        min_df=1,  # к числу топиков, не постов — всегда 1
         max_df=0.85,
         max_features=30_000,
         stop_words=ARTIFACT_STOP_WORDS,
