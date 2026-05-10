@@ -13,7 +13,7 @@ def scale_hparams(base_hparams: dict, corpus_size: int) -> dict:
     scaled["min_cluster_size"] = max(
         10, floor(base_hparams["min_cluster_size"] * scale)
     )
-    scaled["min_df"] = max(1, floor(base_hparams.get("min_df", 10) * scale))
+    scaled["min_df"] = max(1, min(floor(base_hparams.get("min_df", 10) * scale), 10))
     return scaled
 
 
