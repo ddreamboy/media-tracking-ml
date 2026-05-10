@@ -26,3 +26,4 @@ pymorphy2-dicts-ru
 razdel
 sqlalchemy
 psycopg2-binary
+pyarrow>=15.0

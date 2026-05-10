@@ -24,18 +24,44 @@ HF_FILENAME = "raw/posts.parquet"
 CLEARML_DATASET_NAME = "media_tracking_posts"
 
 
-def _find_parquet_file(base_dir: str) -> str:
-    candidates = sorted(Path(base_dir).rglob("*.parquet"))
-    if not candidates:
-        raise FileNotFoundError(f"No parquet files found in {base_dir}")
+def _read_dataset_filtered(
+    base_dir: str, start_date: str, end_date: str
+) -> pd.DataFrame:
+    """Читает parquet-файлы с pushdown-фильтром по дате - не грузит весь датасет в память."""
+    import pyarrow.compute as pc  # noqa: PLC0415
+    import pyarrow.dataset as pads  # noqa: PLC0415
 
-    for path in candidates:
-        if path.as_posix().endswith("raw/posts.parquet"):
-            return str(path)
-    return str(candidates[0])
+    files = sorted(Path(base_dir).rglob("*.parquet"))
+    if not files:
+        raise FileNotFoundError(f"No parquet files in {base_dir}")
+    print(f"Scanning {len(files)} parquet file(s): {[f.name for f in files]}")
+
+    pq_dataset = pads.dataset([str(f) for f in files], format="parquet")
+
+    # Колонка даты может называться post_date или created_at в зависимости от файла
+    schema_names = pq_dataset.schema.names
+    date_col = "post_date" if "post_date" in schema_names else "created_at"
+
+    start_ts = pd.Timestamp(start_date, tz="UTC")
+    end_ts = pd.Timestamp(end_date, tz="UTC") + pd.Timedelta(days=1)
+
+    date_filter = (pc.field(date_col) >= start_ts) & (pc.field(date_col) < end_ts)
+    table = pq_dataset.to_table(filter=date_filter)
+    df = table.to_pandas()
+    print(f"After date filter: {len(df):,} rows")
+
+    # Дедупликация по id_post (строки могут быть и в posts.parquet и в delta_*.parquet)
+    id_col = "id_post" if "id_post" in df.columns else "post_id"
+    before = len(df)
+    df = df.drop_duplicates(subset=[id_col], keep="last").reset_index(drop=True)
+    if before != len(df):
+        print(f"Deduped {before - len(df):,} cross-file duplicates")
+    return df
 
 
-def _get_or_create_clearml_dataset() -> tuple[Dataset, str, bool]:
+def _get_or_create_clearml_dataset(
+    start_date: str, end_date: str
+) -> tuple[Dataset, pd.DataFrame, bool]:
     try:
         dataset = Dataset.get(
             dataset_project=CLEARML_PROJECT_NAME,
@@ -45,9 +71,16 @@ def _get_or_create_clearml_dataset() -> tuple[Dataset, str, bool]:
         if not dataset.is_final():
             raise ValueError(f"Dataset {dataset.id} is not finalized - will recreate")
         local_copy = dataset.get_local_copy()
-        parquet_path = _find_parquet_file(local_copy)
-        print(f"Using existing ClearML Dataset: {dataset.id}")
-        return dataset, parquet_path, False
+        df = _read_dataset_filtered(local_copy, start_date, end_date)
+        print(
+            f"Using existing ClearML Dataset: {dataset.id}  rows after filter={len(df):,}"
+        )
+        return dataset, df, False
+    except FileExistsError as e:
+        raise RuntimeError(
+            f"Dataset cache conflict: {e}. "
+            f"Remove ~/.clearml/cache/storage_manager/datasets/ and retry."
+        ) from e
     except Exception as e:
         print(f"Could not use existing dataset ({e}), downloading from HF Hub...")
         Path("data").mkdir(parents=True, exist_ok=True)
@@ -63,14 +96,15 @@ def _get_or_create_clearml_dataset() -> tuple[Dataset, str, bool]:
         dataset = Dataset.create(
             dataset_name=CLEARML_DATASET_NAME,
             dataset_project=CLEARML_PROJECT_NAME,
-            dataset_tags=["source:hf", f"year:{TARGET_YEAR}"],
+            dataset_tags=["source:hf"],
         )
         dataset.add_files(file_path, dataset_path="raw")
         dataset.upload()
         dataset.finalize()
 
-        print(f"Created ClearML Dataset from HF: {dataset.id}")
-        return dataset, file_path, True
+        df = pd.read_parquet(file_path)
+        print(f"Created ClearML Dataset from HF: {dataset.id}  rows={len(df):,}")
+        return dataset, df, True
 
 
 def main():
@@ -84,21 +118,23 @@ def main():
     import os
 
     _today = datetime.now(timezone.utc).date().isoformat()
-    _default_start = (datetime.now(timezone.utc) - timedelta(days=180)).date().isoformat()
+    _default_start = (
+        (datetime.now(timezone.utc) - timedelta(days=180)).date().isoformat()
+    )
     _default_sample = int(os.environ.get("T01_SAMPLE_SIZE", "0"))
 
-    params = task.connect({
-        "start_date": _default_start,
-        "end_date": _today,
-        "sample_size": _default_sample,
-    })
+    params = task.connect(
+        {
+            "start_date": _default_start,
+            "end_date": _today,
+            "sample_size": _default_sample,
+        }
+    )
     start_date = params["start_date"]
     end_date = params["end_date"]
     sample_size = int(params["sample_size"])
 
-    dataset, parquet_path, dataset_created = _get_or_create_clearml_dataset()
-
-    df = pd.read_parquet(parquet_path)
+    dataset, df, dataset_created = _get_or_create_clearml_dataset(start_date, end_date)
 
     df = df.rename(
         columns={
@@ -117,10 +153,6 @@ def main():
 
     df["created_at"] = pd.to_datetime(df["created_at"], utc=True, errors="coerce")
     df = df.dropna(subset=["created_at"])
-
-    start_dt = pd.Timestamp(start_date, tz="UTC")
-    end_dt = pd.Timestamp(end_date, tz="UTC") + pd.Timedelta(days=1)
-    df = df[(df["created_at"] >= start_dt) & (df["created_at"] < end_dt)].copy()
 
     num_records = len(df)
     if num_records == 0:
@@ -182,7 +214,7 @@ def main():
     task.upload_artifact("dataset_meta.json", artifact_object=meta_path)
 
     print(
-        f"Done. Year: {TARGET_YEAR}, Records: {num_records}, "
+        f"Done. {start_date} -> {end_date}, Records: {num_records}, "
         f"Channels: {channels_count}, Dataset: {dataset.id}"
     )
     task.close()

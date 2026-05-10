@@ -1,15 +1,18 @@
 """Task t08: Promote model to production and push to HF Hub"""
+
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import json
 import os
 import tempfile
-
-import json
+import zipfile
 from datetime import datetime, timezone
+from pathlib import Path
 
-from clearml import Model, Task
+from clearml import Model, OutputModel, Task
 from shared.clearml_utils import get_artifact, tag_model_as_production
 from shared.config import (
     CLEARML_PROJECT_NAME,
@@ -72,19 +75,38 @@ def main():
     with open(training_meta_path) as f:
         training_meta = json.load(f)
 
-    # Tag model in ClearML registry
+    # Register model in ClearML Models registry
     tag_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     new_tag = f"model-{tag_date}"
 
     try:
-        # Tag current ClearML task's output model as production
-        output_models = task.get_models()["output"]
-        if output_models:
-            new_model_obj = output_models[0]
-            tag_model_as_production(new_model_obj)
-            task.connect({"new_model_tag": new_tag}, name="promotion")
+        # Модель сохранена как директория - пакуем в zip для регистрации
+        zip_path = os.path.join(tempfile.gettempdir(), f"bertopic_model_{tag_date}.zip")
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for f_path in Path(model_path).rglob("*"):
+                if f_path.is_file():
+                    zf.write(f_path, f_path.relative_to(model_path))
+
+        with open(training_meta_path) as f:
+            _meta = json.load(f)
+
+        output_model = OutputModel(
+            task=task,
+            name=f"BERTopic {new_tag}",
+            tags=["production"],
+            framework="BERTopic",
+            config_dict={
+                "embedding_model": _meta.get("embedding_model_name", ""),
+                "noise_ratio": _meta.get("metrics", {}).get("noise_ratio", ""),
+                "corpus_size": _meta.get("corpus_size", ""),
+            },
+        )
+        output_model.update_weights(weights_filename=zip_path)
+        output_model.publish()
+        tag_model_as_production(output_model)
+        print(f"Registered OutputModel: {output_model.id}  tag={new_tag}")
     except Exception as e:
-        print(f"WARNING: could not tag model in registry: {e}")
+        print(f"WARNING: could not register model in ClearML registry: {e}")
 
     # Deprecated topic IDs
     deprecated_ids = [
