@@ -50,12 +50,6 @@ def _read_dataset_filtered(
     df = table.to_pandas()
     print(f"After date filter: {len(df):,} rows")
 
-    # Дедупликация по id_post (строки могут быть и в posts.parquet и в delta_*.parquet)
-    id_col = "id_post" if "id_post" in df.columns else "post_id"
-    before = len(df)
-    df = df.drop_duplicates(subset=[id_col], keep="last").reset_index(drop=True)
-    if before != len(df):
-        print(f"Deduped {before - len(df):,} cross-file duplicates")
     return df
 
 

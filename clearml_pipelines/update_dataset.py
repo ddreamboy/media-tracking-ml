@@ -69,28 +69,9 @@ def main() -> None:
     existing = Dataset.get(dataset_name=DATASET_NAME, dataset_project=DATASET_PROJECT)
     logger.info(f"Current dataset id: {existing.id}  version: {existing.version}")
 
-    local_dir = Path(existing.get_local_copy())
-
-    # Читаем только колонку id_post - не грузим весь датасет в память
-    import pyarrow.dataset as pads  # noqa: PLC0415
-
-    pq_dataset = pads.dataset(local_dir, format="parquet")
-    existing_ids = set(pq_dataset.to_table(columns=["id_post"])["id_post"].to_pylist())
-    logger.info(f"Existing unique id_post: {len(existing_ids):,}")
-
     logger.info(f"Loading CSV: {csv_path}...")
-    df_new = _load_csv(csv_path)
-    logger.info(f"CSV rows: {len(df_new):,}")
-
-    # Только строки которых нет в существующем датасете
-    df_delta = df_new[~df_new["id_post"].isin(existing_ids)].reset_index(drop=True)
-    logger.info(
-        f"Net new rows (delta): {len(df_delta):,}  (skipped {len(df_new) - len(df_delta):,} already existing)"
-    )
-
-    if len(df_delta) == 0:
-        logger.info("No new rows - nothing to upload.")
-        return
+    df_delta = _load_csv(csv_path)
+    logger.info(f"New rows to add: {len(df_delta):,}")
 
     if args.dry_run:
         logger.info("Dry run - not uploading.")
