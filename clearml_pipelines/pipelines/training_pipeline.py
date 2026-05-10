@@ -62,7 +62,11 @@ def run_pipeline(
         name="t01_data_fetch",
         base_task_project=CLEARML_PROJECT_NAME,
         base_task_name="t01_data_fetch",
-        parameter_override={"General/sample_size": sample_size},
+        parameter_override={
+            "General/start_date": start_date,
+            "General/end_date": end_date,
+            "General/sample_size": sample_size,
+        },
         execution_queue="default",
         cache_executed_step=False,
     )

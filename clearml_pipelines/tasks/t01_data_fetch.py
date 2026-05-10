@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import json
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import matplotlib
@@ -22,7 +22,6 @@ from shared.config import CLEARML_PROJECT_NAME
 HF_REPO_ID = "ddreamboy/media-tracking-topics-dataset"
 HF_FILENAME = "raw/posts.parquet"
 CLEARML_DATASET_NAME = "media_tracking_posts"
-TARGET_YEAR = 2025
 
 
 def _find_parquet_file(base_dir: str) -> str:
@@ -84,8 +83,17 @@ def main():
 
     import os
 
+    _today = datetime.now(timezone.utc).date().isoformat()
+    _default_start = (datetime.now(timezone.utc) - timedelta(days=180)).date().isoformat()
     _default_sample = int(os.environ.get("T01_SAMPLE_SIZE", "0"))
-    params = task.connect({"sample_size": _default_sample})
+
+    params = task.connect({
+        "start_date": _default_start,
+        "end_date": _today,
+        "sample_size": _default_sample,
+    })
+    start_date = params["start_date"]
+    end_date = params["end_date"]
     sample_size = int(params["sample_size"])
 
     dataset, parquet_path, dataset_created = _get_or_create_clearml_dataset()
@@ -109,19 +117,19 @@ def main():
 
     df["created_at"] = pd.to_datetime(df["created_at"], utc=True, errors="coerce")
     df = df.dropna(subset=["created_at"])
-    df = df[df["created_at"].dt.year == TARGET_YEAR].copy()
+
+    start_dt = pd.Timestamp(start_date, tz="UTC")
+    end_dt = pd.Timestamp(end_date, tz="UTC") + pd.Timedelta(days=1)
+    df = df[(df["created_at"] >= start_dt) & (df["created_at"] < end_dt)].copy()
 
     num_records = len(df)
     if num_records == 0:
-        raise RuntimeError(f"No records found for {TARGET_YEAR} in dataset")
+        raise RuntimeError(f"No records found between {start_date} and {end_date}")
 
     if sample_size > 0 and sample_size < num_records:
-        df = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
-        print(f"Sampled {sample_size:,} records from {num_records:,}")
+        df = df.sort_values("created_at").tail(sample_size).reset_index(drop=True)
+        print(f"Took last {sample_size:,} records by date from {num_records:,}")
         num_records = len(df)
-
-    start_date = datetime(TARGET_YEAR, 1, 1, tzinfo=timezone.utc).date().isoformat()
-    end_date = datetime(TARGET_YEAR, 12, 31, tzinfo=timezone.utc).date().isoformat()
     channels_count = df["channel"].nunique()
     date_range_days = (pd.to_datetime(end_date) - pd.to_datetime(start_date)).days + 1
 

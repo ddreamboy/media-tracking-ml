@@ -134,25 +134,15 @@ def check_drift_trigger(
     return bool(triggered_reasons), triggered_reasons
 
 
-def trigger_training_pipeline():
+def trigger_training_pipeline(training_days: int = 180, sample_size: int = 0):
+    """Запускает training pipeline на последних training_days днях данных."""
+    from pipelines.training_pipeline import run_pipeline  # noqa: PLC0415
 
-    print("Triggering Training Pipeline...")
-    tasks = Task.get_tasks(
-        project_name=CLEARML_PROJECT_NAME,
-        task_filter={"name": "Training Pipeline", "status": ["created"]},
-    )
-    if tasks:
-        tasks[0].enqueue(queue_name="default")
-        print(f"Enqueued existing pipeline task: {tasks[0].id}")
-    else:
-        pipeline_task = Task.init(
-            project_name=CLEARML_PROJECT_NAME,
-            task_name="Training Pipeline (drift triggered)",
-            task_type=Task.TaskTypes.controller,
-        )
-        pipeline_task.add_tags([TAG_TRAINING_IN_PROGRESS])
-        pipeline_task.enqueue(queue_name="default")
-        print(f"Created and enqueued new pipeline task: {pipeline_task.id}")
+    end_date = datetime.now(timezone.utc).date().isoformat()
+    start_date = (datetime.now(timezone.utc) - timedelta(days=training_days)).date().isoformat()
+
+    print(f"Triggering Training Pipeline: {start_date} -> {end_date}, sample_size={sample_size or 'all'}")
+    run_pipeline(start_date=start_date, end_date=end_date, sample_size=sample_size)
 
 
 def main():
@@ -169,10 +159,14 @@ def main():
             "avg_probability_min": DRIFT_THRESHOLDS["avg_probability_min"],
             "low_confidence_ratio_max": DRIFT_THRESHOLDS["low_confidence_ratio_max"],
             "noise_ratio_inference_max": DRIFT_THRESHOLDS["noise_ratio_inference_max"],
+            "retrain_days": 180,   # обучать на последних N днях при триггере
+            "retrain_sample_size": 0,  # 0 = все записи за retrain_days
         }
     )
 
     window_days = int(params["drift_window_days"])
+    retrain_days = int(params["retrain_days"])
+    retrain_sample_size = int(params["retrain_sample_size"])
     thresholds = {
         "avg_probability_min": float(params["avg_probability_min"]),
         "low_confidence_ratio_max": float(params["low_confidence_ratio_max"]),
@@ -214,7 +208,7 @@ def main():
         if is_training_in_progress():
             print("Training already in progress - skipping trigger")
         else:
-            trigger_training_pipeline()
+            trigger_training_pipeline(training_days=retrain_days, sample_size=retrain_sample_size)
     else:
         print("No drift detected")
         task.connect({"drift_triggered": False}, name="drift")
