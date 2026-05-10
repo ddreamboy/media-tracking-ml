@@ -6,5 +6,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "clearml>=2.1.5",
+    "fastparquet>=2026.3.0",
+    "loguru>=0.7.3",
+    "pandas>=3.0.2",
     "python-dotenv>=1.2.2",
 ]

@@ -64,6 +64,7 @@ def run_pipeline(
         base_task_name="t01_data_fetch",
         parameter_override={"General/sample_size": sample_size},
         execution_queue="default",
+        cache_executed_step=False,
     )
     pipe.add_step(
         name="t02_preprocess",
