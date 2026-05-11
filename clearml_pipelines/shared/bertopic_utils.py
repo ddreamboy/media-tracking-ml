@@ -6,24 +6,32 @@ import numpy as np
 from .config import ARTIFACT_STOP_WORDS, N_FULL_CORPUS, RANDOM_STATE
 
 
-def scale_hparams(base_hparams: dict, corpus_size: int) -> dict:
-    scale = corpus_size / N_FULL_CORPUS
+def scale_hparams(
+    base_hparams: dict, corpus_size: int, reference_size: int | None = None
+) -> dict:
+    """Масштабирует hparams пропорционально corpus_size / reference_size
+
+    reference_size - размер выборки на которой hparams были получены
+    """
+    ref = reference_size if reference_size is not None else N_FULL_CORPUS
+    scale = corpus_size / ref
     scaled = dict(base_hparams)
     scaled["min_samples"] = max(5, floor(base_hparams["min_samples"] * scale))
     scaled["min_cluster_size"] = max(
         10, floor(base_hparams["min_cluster_size"] * scale)
     )
-    scaled["min_df"] = 1
     return scaled
 
 
-def build_bertopic(hparams: dict, corpus_size: int = N_FULL_CORPUS):
+def build_bertopic(
+    hparams: dict, corpus_size: int = N_FULL_CORPUS, reference_size: int | None = None
+):
     from bertopic import BERTopic
     from hdbscan import HDBSCAN
     from sklearn.feature_extraction.text import CountVectorizer
     from umap import UMAP
 
-    scaled = scale_hparams(hparams, corpus_size)
+    scaled = scale_hparams(hparams, corpus_size, reference_size=reference_size)
 
     umap_model = UMAP(
         n_neighbors=hparams["n_neighbors"],
@@ -43,7 +51,7 @@ def build_bertopic(hparams: dict, corpus_size: int = N_FULL_CORPUS):
     vectorizer_model = CountVectorizer(
         analyzer="word",
         ngram_range=(1, 2),
-        min_df=1,  # к числу топиков, не постов — всегда 1
+        min_df=1,  # к числу топиков, не постов - всегда 1
         max_df=0.85,
         max_features=30_000,
         stop_words=ARTIFACT_STOP_WORDS,

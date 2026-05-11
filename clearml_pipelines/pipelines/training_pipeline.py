@@ -27,6 +27,26 @@ from shared.config import (
 # t07,t06,t05,t04_reduce_outliers,t04 -> t08(validation_report.json, topic_map_llm.csv, bertopic_model.model, ...)
 
 
+def _find_latest_hpo_task():
+    """Ищет последнюю завершённую HPO_BERTopic задачу. Возвращает (task_id, sample_size) или (None, 0)"""
+    from clearml import Task as ClearMLTask  # noqa: PLC0415
+    tasks = ClearMLTask.get_tasks(
+        project_name=CLEARML_PROJECT_NAME,
+        task_name="HPO_BERTopic",
+        task_filter={"status": ["completed"], "order_by": ["-last_update"]},
+    )
+    if not tasks:
+        return None, 0
+    hpo = tasks[0]
+    sample_size = int(
+        hpo.get_parameter("Args/sample_size")
+        or hpo.get_parameter("General/sample_size")
+        or 0
+    )
+    print(f"Found HPO task: {hpo.id}  sample_size={sample_size}")
+    return hpo.id, sample_size
+
+
 def run_pipeline(
     start_date: str = None,
     end_date: str = None,
@@ -45,9 +65,14 @@ def run_pipeline(
             (datetime.now(timezone.utc) - timedelta(days=180)).date().isoformat()
         )
 
+    hpo_task_id, hpo_sample_size = _find_latest_hpo_task()
+    if hpo_task_id and sample_size == 0:
+        sample_size = hpo_sample_size
+        print(f"Using sample_size={sample_size} from HPO task")
+
     print(
         f"Starting Training Pipeline: {start_date} -> {end_date}, "
-        f"sample_size={sample_size or 'all'}"
+        f"sample_size={sample_size or 'all'}  hpo_task_id={hpo_task_id or 'none'}"
     )
 
     pipe = PipelineController(
@@ -100,6 +125,7 @@ def run_pipeline(
         parents=["t02_preprocess", "t03_embed"],
         parameter_override={
             "General/upstream_task_ids": "${t02_preprocess.id},${t03_embed.id}",
+            "General/hpo_task_id": hpo_task_id or "",
         },
         execution_queue="gpu",
     )
