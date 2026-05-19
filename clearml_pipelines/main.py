@@ -63,13 +63,13 @@ def _get_https_repo_url() -> str:
         cwd=str(Path(__file__).parent.parent),
     )
     url = result.stdout.strip()
-    # git@github.com:user/repo.git -> https://github.com/user/repo.git
     url = re.sub(r"^git@([^:]+):", r"https://\1/", url)
     return url
 
 
 def cmd_hpo(args):
     from hpo.run_hpo import run_with_args
+
     run_with_args(args)
 
 
@@ -174,7 +174,7 @@ def main():
     p_run.add_argument("--queue", default="default", help="ClearML queue name")
     p_run.set_defaults(func=cmd_run)
 
-    # register all tasks in ClearML (no execution)
+    # register all tasks in ClearML
     p_reg = sub.add_parser(
         "register", help="Register all tasks in ClearML without running them"
     )
