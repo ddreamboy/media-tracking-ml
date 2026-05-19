@@ -1,12 +1,13 @@
 """Task t03: Generate sentence embeddings"""
+
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import json
 import os
 import tempfile
-
-import json
 
 import numpy as np
 import pandas as pd
@@ -62,7 +63,6 @@ def main():
             f"WARNING: EMBEDDING_MODEL_CHANGED - prod={prod_model_name}, new={model_name}"
         )
 
-    # Log as parameters
     task.connect(
         {"embedding_provider": provider, "embedding_model_name": model_name},
         name="parameters",

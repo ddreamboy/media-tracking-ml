@@ -107,7 +107,9 @@ def main():
     try:
         topic_model.vectorizer_model.transform(["test"])
     except _NotFittedError:
-        print("Vectorizer/ctfidf not fitted - restoring via update_topics (save_ctfidf=False)")
+        print(
+            "Vectorizer/ctfidf not fitted - restoring via update_topics (save_ctfidf=False)"
+        )
         topic_model.update_topics(docs_lemm, topics=topics_orig)
 
     # Step 1: c-tf-idf - fast, no embeddings required

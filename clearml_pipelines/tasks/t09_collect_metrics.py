@@ -1,6 +1,8 @@
 """Task t09: Collect inference metrics and trigger retraining if drift detected"""
+
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import json
@@ -15,7 +17,6 @@ from shared.config import (
     CLEARML_PROJECT_NAME,
     DB_CONNECTION_STRING,
     DRIFT_WINDOW_DAYS,
-    TAG_TRAINING_IN_PROGRESS,
 )
 
 DRIFT_THRESHOLDS = {
@@ -139,9 +140,13 @@ def trigger_training_pipeline(training_days: int = 180, sample_size: int = 0):
     from pipelines.training_pipeline import run_pipeline  # noqa: PLC0415
 
     end_date = datetime.now(timezone.utc).date().isoformat()
-    start_date = (datetime.now(timezone.utc) - timedelta(days=training_days)).date().isoformat()
+    start_date = (
+        (datetime.now(timezone.utc) - timedelta(days=training_days)).date().isoformat()
+    )
 
-    print(f"Triggering Training Pipeline: {start_date} -> {end_date}, sample_size={sample_size or 'all'}")
+    print(
+        f"Triggering Training Pipeline: {start_date} -> {end_date}, sample_size={sample_size or 'all'}"
+    )
     run_pipeline(start_date=start_date, end_date=end_date, sample_size=sample_size)
 
 
@@ -159,7 +164,7 @@ def main():
             "avg_probability_min": DRIFT_THRESHOLDS["avg_probability_min"],
             "low_confidence_ratio_max": DRIFT_THRESHOLDS["low_confidence_ratio_max"],
             "noise_ratio_inference_max": DRIFT_THRESHOLDS["noise_ratio_inference_max"],
-            "retrain_days": 180,   # обучать на последних N днях при триггере
+            "retrain_days": 180,  # обучать на последних N днях при триггере
             "retrain_sample_size": 0,  # 0 = все записи за retrain_days
         }
     )
@@ -208,7 +213,9 @@ def main():
         if is_training_in_progress():
             print("Training already in progress - skipping trigger")
         else:
-            trigger_training_pipeline(training_days=retrain_days, sample_size=retrain_sample_size)
+            trigger_training_pipeline(
+                training_days=retrain_days, sample_size=retrain_sample_size
+            )
     else:
         print("No drift detected")
         task.connect({"drift_triggered": False}, name="drift")

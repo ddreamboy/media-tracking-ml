@@ -38,7 +38,6 @@ def _read_dataset_filtered(
 
     pq_dataset = pads.dataset([str(f) for f in files], format="parquet")
 
-    # Колонка даты может называться post_date или created_at в зависимости от файла
     schema_names = pq_dataset.schema.names
     date_col = "post_date" if "post_date" in schema_names else "created_at"
 

@@ -67,7 +67,6 @@ def pull_latest_artifacts(local_dir: str, repo_id: str | None = None) -> dict[st
         tags = [t.name for t in refs.tags]
         if not tags:
             return {}
-        # pick the latest tag by sorting lexicographically (model-YYYY-MM-DD)
         latest_tag = sorted(tags)[-1]
     except Exception as e:
         return {}

@@ -131,8 +131,7 @@ def main():
     if HF_TOKEN:
         files_to_push = {
             "topic_map_llm.csv": topic_map_path,
-            # topic_embeddings_gemini.npy - semantic matcher artifact name for ml_service
-            "topic_embeddings_gemini.npy": topic_emb_path,
+            "topic_embeddings.npy": topic_emb_path,
             "training_meta.json": training_meta_path,
             "evolution_report.json": evolution_path,
             "bertopic_model.model": model_path,

@@ -19,7 +19,6 @@ def get_production_model() -> Optional[Model]:
     )
     if not models:
         return None
-    # Sort by creation time, return most recent
     models.sort(key=lambda m: m.created, reverse=True)
     return models[0]
 

@@ -1,18 +1,23 @@
 """Task t06: Topic labeling via ring-based sampling + LLM"""
+
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import json
 import os
 import tempfile
-
-import json
 
 import numpy as np
 import pandas as pd
 from bertopic import BERTopic
 from clearml import Task
-from shared.clearml_utils import get_artifact, get_artifact_optional, get_production_model
+from shared.clearml_utils import (
+    get_artifact,
+    get_artifact_optional,
+    get_production_model,
+)
 from shared.config import (
     CLEARML_PROJECT_NAME,
     LLM_API_KEY,
@@ -220,7 +225,6 @@ def main():
         "coverage",
         "evolution_type",
         "zone_boundaries_q25_q60",
-        # non-spec extras that are useful for ml_service and auditing:
         "label_source",
         "l1",
         "l2",

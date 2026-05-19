@@ -1,7 +1,7 @@
 import re
-from joblib import Parallel, delayed
 
 import pymorphy3
+from joblib import Parallel, delayed
 
 _URL_RE = re.compile(r"https?://\S+|www\.\S+")
 _EMOJI_RE = re.compile(

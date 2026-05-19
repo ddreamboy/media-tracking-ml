@@ -198,7 +198,6 @@ def label_all_topics(
     for tid in topic_ids:
         count = int(topic_info.loc[tid, "Count"]) if tid in topic_info.index else 0
 
-        # Compute ring_data once per topic - reuse for both label source and zone counts
         ring_data = get_ring_samples(
             model,
             tid,
@@ -228,9 +227,7 @@ def label_all_topics(
                 "Human_Label": f"{label.get('l1', '')}:{label.get('l2', '')}:{label.get('l3', '')}",
                 "is_heterogeneous": bool(label.get("heterogeneous", False)),
                 "coverage": label.get("coverage"),
-                # evolution_type will be filled from evolution_report in the calling task
                 "evolution_type": "",
-                # label_source: "inherited" (from prod) or "llm" (freshly generated)
                 "label_source": label_source,
                 "zone_boundaries_q25_q60": f"{q_low:.4f},{q_high:.4f}",
                 "l1": label.get("l1", ""),

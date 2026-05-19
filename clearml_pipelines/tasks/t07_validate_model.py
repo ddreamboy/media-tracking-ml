@@ -1,12 +1,13 @@
 """Task t07: Validate new model vs production"""
+
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import json
 import os
 import tempfile
-
-import json
 
 from clearml import Task
 from shared.clearml_utils import get_artifact, get_production_model

@@ -1,12 +1,13 @@
 """Task t04: Train BERTopic model"""
+
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import json
 import os
 import tempfile
-
-import json
 import time
 
 import numpy as np
@@ -25,11 +26,13 @@ def main():
     )
     logger = task.get_logger()
 
-    params = task.connect({
-        "upstream_task_ids": "",
-        "heterogeneous_topic_ids": "[]",
-        "hpo_task_id": "",
-    })
+    params = task.connect(
+        {
+            "upstream_task_ids": "",
+            "heterogeneous_topic_ids": "[]",
+            "hpo_task_id": "",
+        }
+    )
     het_ids_raw = params.get("heterogeneous_topic_ids", "[]")
     if isinstance(het_ids_raw, str):
         heterogeneous_topic_ids = json.loads(het_ids_raw)
@@ -53,14 +56,21 @@ def main():
             hpo_meta_path = hpo_task.artifacts["best_hparams.json"].get_local_copy()
             with open(hpo_meta_path) as f:
                 base_hparams = json.load(f)
-            reference_size = int(
-                hpo_task.get_parameter("Args/sample_size")
-                or hpo_task.get_parameter("General/sample_size")
-                or 0
-            ) or None
-            print(f"Loaded hparams from HPO task {hpo_task_id}  reference_size={reference_size}")
+            reference_size = (
+                int(
+                    hpo_task.get_parameter("Args/sample_size")
+                    or hpo_task.get_parameter("General/sample_size")
+                    or 0
+                )
+                or None
+            )
+            print(
+                f"Loaded hparams from HPO task {hpo_task_id}  reference_size={reference_size}"
+            )
         except Exception as e:
-            print(f"WARNING: could not load HPO hparams ({e}), falling back to defaults without scaling")
+            print(
+                f"WARNING: could not load HPO hparams ({e}), falling back to defaults without scaling"
+            )
             base_hparams = get_best_hparams(str(DEFAULT_HPARAMS_PATH))
             reference_size = None
     else:
@@ -76,7 +86,9 @@ def main():
         adjusted["min_cluster_size"] = max(
             10, floor(base_hparams.get("min_cluster_size", 53) * 0.7)
         )
-        print(f"Applying heterogeneous adjustment: min_cluster_size -> {adjusted['min_cluster_size']}")
+        print(
+            f"Applying heterogeneous adjustment: min_cluster_size -> {adjusted['min_cluster_size']}"
+        )
         hparams_for_build = adjusted
     else:
         hparams_for_build = base_hparams
@@ -84,10 +96,12 @@ def main():
     corpus_size = len(df)
 
     if reference_size is not None:
-        scaled = scale_hparams(hparams_for_build, corpus_size, reference_size=reference_size)
+        scaled = scale_hparams(
+            hparams_for_build, corpus_size, reference_size=reference_size
+        )
         print(f"Scaled hparams (corpus={corpus_size}, ref={reference_size}): {scaled}")
     else:
-        # Нет HPO — используем параметры as-is, только min_df фиксируем
+        # Используем параметры as-is, только min_df фиксируем
         scaled = dict(hparams_for_build)
         scaled["min_df"] = 1
         print(f"Using hparams as-is (no scaling): {scaled}")
@@ -95,7 +109,9 @@ def main():
     task.connect(scaled, name="hparams")
 
     docs_lemm = df["text_lemm"].tolist()
-    model = build_bertopic(hparams_for_build, corpus_size, reference_size=reference_size)
+    model = build_bertopic(
+        hparams_for_build, corpus_size, reference_size=reference_size
+    )
 
     t0 = time.time()
     topics, _ = model.fit_transform(docs_lemm, embeddings=embeddings)
@@ -133,7 +149,6 @@ def main():
         "metrics", "training_duration_seconds", value=training_duration, iteration=0
     )
 
-    # Save model using safetensors to avoid cross-platform numba pickle issues
     model_path = tempfile.mkdtemp(prefix="bertopic_model_")
     model.save(
         model_path,
