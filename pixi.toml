@@ -40,10 +40,12 @@ pynndescent = ">=0.5.13"
 [feature.cuda.pypi-dependencies]
 torch = { version = "*", index = "https://download.pytorch.org/whl/cu130" }
 torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu130" }
+pyarrow = ">=24.0.0, <25"
 
 [feature.cpu.pypi-dependencies]
 torch = "*"
 torchvision = "*"
+pyarrow = ">=24.0.0, <25"
 
 [environments]
 cuda = { features = ["base", "cuda"], solve-group = "cuda" }
