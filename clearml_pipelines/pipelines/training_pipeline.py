@@ -12,8 +12,12 @@ from shared.clearml_utils import is_training_in_progress
 from shared.config import (
     CLEARML_PROJECT_NAME,
     EMBEDDING_BATCH_SIZE,
+    EMBEDDING_DIMENSIONS,
+    EMBEDDING_MAX_SEQ_LENGTH,
+    EMBEDDING_MAX_WORKERS,
     EMBEDDING_MODEL_NAME,
     EMBEDDING_PROVIDER,
+    EMBEDDING_TORCH_DTYPE,
 )
 
 # Artifact dependency map:
@@ -23,13 +27,14 @@ from shared.config import (
 # t04,t03,t02 -> t04_reduce_outliers(bertopic_model.model*, topics.npy*)  *overrides t04 in upstream chain
 # t04_reduce_outliers,t03 -> t05(bertopic_model.model, embedding_meta.json)
 # t04_reduce_outliers,t02,t05,t03 -> t06(bertopic_model.model, topics.npy, preprocessed.parquet, evolution_report.json, embeddings.npy)
-# t04_reduce_outliers -> t07(training_meta.json with post-reduction noise_ratio)
+# t04_reduce_outliers,t03 -> t07(training_meta.json with post-reduction noise_ratio, embedding_meta.json)
 # t07,t06,t05,t04_reduce_outliers,t04 -> t08(validation_report.json, topic_map_llm.csv, bertopic_model.model, ...)
 
 
 def _find_latest_hpo_task():
     """Ищет последнюю завершённую HPO_BERTopic задачу. Возвращает (task_id, sample_size) или (None, 0)"""
-    from clearml import Task as ClearMLTask  # noqa: PLC0415
+    from clearml import Task as ClearMLTask
+
     tasks = ClearMLTask.get_tasks(
         project_name=CLEARML_PROJECT_NAME,
         task_name="HPO_BERTopic",
@@ -38,11 +43,7 @@ def _find_latest_hpo_task():
     if not tasks:
         return None, 0
     hpo = tasks[0]
-    sample_size = int(
-        hpo.get_parameter("Args/sample_size")
-        or hpo.get_parameter("General/sample_size")
-        or 0
-    )
+    sample_size = int(hpo.get_parameter("Args/sample_size") or hpo.get_parameter("General/sample_size") or 0)
     print(f"Found HPO task: {hpo.id}  sample_size={sample_size}")
     return hpo.id, sample_size
 
@@ -61,9 +62,7 @@ def run_pipeline(
     if start_date is None:
         from datetime import timedelta
 
-        start_date = (
-            (datetime.now(timezone.utc) - timedelta(days=180)).date().isoformat()
-        )
+        start_date = (datetime.now(timezone.utc) - timedelta(days=180)).date().isoformat()
 
     hpo_task_id, hpo_sample_size = _find_latest_hpo_task()
     if hpo_task_id and sample_size == 0:
@@ -115,6 +114,10 @@ def run_pipeline(
             "General/embedding_provider": EMBEDDING_PROVIDER,
             "General/embedding_model_name": EMBEDDING_MODEL_NAME,
             "General/batch_size": EMBEDDING_BATCH_SIZE,
+            "General/max_seq_length": EMBEDDING_MAX_SEQ_LENGTH,
+            "General/torch_dtype": EMBEDDING_TORCH_DTYPE,
+            "General/dimensions": EMBEDDING_DIMENSIONS,
+            "General/max_workers": EMBEDDING_MAX_WORKERS,
         },
         execution_queue="gpu",
     )
@@ -135,9 +138,7 @@ def run_pipeline(
         base_task_name="t04_reduce_outliers",
         parents=["t04_train_bertopic", "t03_embed", "t02_preprocess"],
         parameter_override={
-            "General/upstream_task_ids": (
-                "${t04_train_bertopic.id},${t03_embed.id},${t02_preprocess.id}"
-            ),
+            "General/upstream_task_ids": ("${t04_train_bertopic.id},${t03_embed.id},${t02_preprocess.id}"),
         },
         execution_queue="default",
     )
@@ -170,7 +171,7 @@ def run_pipeline(
         base_task_name="t07_validate_model",
         parents=["t04_reduce_outliers"],
         parameter_override={
-            "General/upstream_task_ids": "${t04_reduce_outliers.id}",
+            "General/upstream_task_ids": "${t04_reduce_outliers.id},${t03_embed.id}",
         },
         execution_queue="default",
     )

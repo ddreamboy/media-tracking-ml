@@ -47,10 +47,15 @@ N_FULL_CORPUS=750000
 ### Опциональные (есть дефолты)
 
 ```env
-# Если хочешь API-эмбеддинги вместо локальной модели
-EMBEDDING_PROVIDER=local_hf        # или: api
-EMBEDDING_MODEL_NAME=deepvk/USER-bge-m3
-EMBEDDING_BATCH_SIZE=512
+# Провайдер эмбеддингов: local_hf | openai | gemini | qwen
+# (всё кроме local_hf идёт через OpenAI-совместимый API)
+EMBEDDING_PROVIDER=local_hf
+EMBEDDING_MODEL_NAME=Qwen/Qwen3-Embedding-4B
+EMBEDDING_BATCH_SIZE=2
+EMBEDDING_MAX_SEQ_LENGTH=1024
+EMBEDDING_TORCH_DTYPE=float16
+EMBEDDING_DIMENSIONS=0             # 0 = нативные 2560; иначе MRL-усечение
+EMBEDDING_MAX_WORKERS=8            # параллельные запросы, только для API-провайдеров
 
 # LLM модель (OpenAI-совместимый API)
 LLM_BASE_URL=https://routerai.ru/api/v1
@@ -59,6 +64,33 @@ LLM_MODEL=google/gemini-2.5-flash-lite
 # БД для мониторинга (t09) - можно не заполнять пока нет интеграции
 DB_CONNECTION_STRING=postgresql://user:password@localhost:5432/media_tracking
 ```
+
+### Про эмбеддер
+
+Обучение (t03) считает эмбеддинги **локально на GPU**, прод-инференс берёт **ту же модель
+по API** через Router AI (`qwen/qwen3-embedding-4b`, переменная `ROUTER_AI_EMBEDDING_MODEL`
+в конфиге воркера). Это должна быть одна и та же модель: UMAP и HDBSCAN обучены в конкретном
+пространстве, и эмбеддинг другой моделью на инференсе разъезжается с обучением, даже если
+размерности совпали.
+
+Отсюда же требования к `Qwen/Qwen3-Embedding-4B`:
+
+- **`EMBEDDING_TORCH_DTYPE=float16` обязателен.** В fp32 модель занимает ~16 ГБ и падает по
+  OOM. В fp16 — ~8 ГБ, помещается на 16 ГБ карте.
+- **`EMBEDDING_MAX_SEQ_LENGTH` обязателен.** В конфиге модели контекст 32768; без явного
+  лимита активации не помещаются в память. 1024 обрезает менее 0.5% постов корпуса.
+- **`EMBEDDING_BATCH_SIZE=2`** — не опечатка. Веса в fp16 занимают 7.5 ГБ, а Windows/WDDM
+  отдаёт процессу лишь ~9 ГБ из 16, так что на активации остаётся около 1.2 ГБ. Замер
+  рабочих точек на RTX 5060 Ti: `seq=1024` проходит только с `batch=2`, `seq=512` — с
+  `batch=4`, `seq=256` — с `batch=16`. При этом батч почти не влияет на скорость
+  (упор в саму модель): 18.8 док/с при 1024/2 против 23 док/с при 256/8 — поэтому берём
+  максимальную длину. Ориентир по времени: ~1.5 ч на 100k документов, ~11 ч на 750k.
+  Аллокатор `expandable_segments` на Windows не поддерживается, обойти фрагментацию им нельзя.
+- Размерность — 2560 против 1024 у прежней BGE, то есть `embeddings.npy` в 2.5 раза тяжелее,
+  а UMAP заметно дороже. Если станет узким местом — `EMBEDDING_DIMENSIONS` включает
+  MRL-усечение, но менять его нужно **синхронно** с воркером инференса (там параметр
+  `dimensions` у API).
+- 8B-версия на 16 ГБ не помещается даже в fp16 (веса ~15.1 ГБ).
 
 ---
 

@@ -18,8 +18,12 @@ from shared.config import (
     EMBEDDING_API_BASE_URL,
     EMBEDDING_API_KEY,
     EMBEDDING_BATCH_SIZE,
+    EMBEDDING_DIMENSIONS,
+    EMBEDDING_MAX_SEQ_LENGTH,
+    EMBEDDING_MAX_WORKERS,
     EMBEDDING_MODEL_NAME,
     EMBEDDING_PROVIDER,
+    EMBEDDING_TORCH_DTYPE,
 )
 from shared.embedder import generate_embeddings
 
@@ -38,12 +42,20 @@ def main():
             "embedding_provider": EMBEDDING_PROVIDER,
             "embedding_model_name": EMBEDDING_MODEL_NAME,
             "batch_size": EMBEDDING_BATCH_SIZE,
+            "max_seq_length": EMBEDDING_MAX_SEQ_LENGTH,
+            "torch_dtype": EMBEDDING_TORCH_DTYPE,
+            "dimensions": EMBEDDING_DIMENSIONS,
+            "max_workers": EMBEDDING_MAX_WORKERS,
         }
     )
 
     provider = params["embedding_provider"]
     model_name = params["embedding_model_name"]
     batch_size = int(params["batch_size"])
+    max_seq_length = int(params["max_seq_length"])
+    torch_dtype = str(params["torch_dtype"])
+    dimensions = int(params["dimensions"])
+    max_workers = int(params["max_workers"])
     api_key = task.get_parameter("Args/embedding_api_key") or EMBEDDING_API_KEY
     api_base_url = (
         task.get_parameter("Args/embedding_api_base_url") or EMBEDDING_API_BASE_URL
@@ -69,7 +81,16 @@ def main():
     )
 
     embeddings, meta = generate_embeddings(
-        texts, provider, model_name, batch_size, api_key, api_base_url
+        texts,
+        provider,
+        model_name,
+        batch_size,
+        api_key,
+        api_base_url,
+        max_seq_length=max_seq_length,
+        torch_dtype=torch_dtype,
+        dimensions=dimensions,
+        max_workers=max_workers,
     )
     meta["embedding_changed"] = embedding_changed
 

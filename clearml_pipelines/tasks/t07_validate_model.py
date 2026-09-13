@@ -10,7 +10,11 @@ import os
 import tempfile
 
 from clearml import Task
-from shared.clearml_utils import get_artifact, get_production_model
+from shared.clearml_utils import (
+    get_artifact,
+    get_artifact_optional,
+    get_production_model,
+)
 from shared.config import CLEARML_PROJECT_NAME, THRESHOLDS_PATH
 
 
@@ -43,6 +47,16 @@ def main():
     noise_new = float(new_metrics.get("noise_ratio", 1))
     num_topics_new = int(new_metrics.get("num_topics", 0))
 
+    # Load embedding_meta to check if embedding changed
+    emb_meta_artifact = get_artifact_optional(task, "embedding_meta.json")
+    embedding_changed = False
+    if emb_meta_artifact:
+        try:
+            emb_meta = emb_meta_artifact.get()
+            embedding_changed = bool(emb_meta.get("embedding_changed", False))
+        except Exception:
+            pass
+
     # Get production metrics (if exists)
     prod_model_obj = get_production_model()
     cold_start = prod_model_obj is None
@@ -70,6 +84,23 @@ def main():
             "passed": True,
             "note": "cold_start",
         }
+    elif embedding_changed:
+        # DBCV считается в UMAP-проекции, построенной из эмбеддингов. При смене эмбеддера
+        # пространства разные, и относительное сравнение с production бессмысленно -
+        # пропускаем гейт, но обязательно показываем оба числа. Абсолютные проверки
+        # (cv_coherence / noise_ratio / num_topics) остаются в силе.
+        dbcv_passed = True
+        checks["dbcv"] = {
+            "new": dbcv_new,
+            "production": dbcv_prod,
+            "threshold_relative": dbcv_min_relative,
+            "passed": True,
+            "note": "embedding_changed",
+        }
+        print(
+            f"EMBEDDING_CHANGED - skipping relative DBCV gate "
+            f"(new={dbcv_new:.4f}, production={dbcv_prod:.4f})"
+        )
     else:
         dbcv_passed = dbcv_new >= dbcv_prod * dbcv_min_relative
         checks["dbcv"] = {
